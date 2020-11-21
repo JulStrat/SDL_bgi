@@ -1,0 +1,11 @@
+TODO
+----
+
+- implement .chr font metrics
+
+- implement getmaxheight(), getmaxwidth(), getwindowheight(),
+getwindowwidth()?
+
+- replace floodfill()?
+
+Your suggestions are welcome!

@@ -1,0 +1,22 @@
+Borland .chr fonts vs Hershey fonts
+-----------------------------------
+
+TRIPLEX_FONT     -> timesrb
+
+SMALL_FONT       -> small
+
+SANS_SERIF_FONT  -> futuram
+
+GOTHIC_FONT      -> gothgbt
+
+SCRIPT_FONT      -> cursive
+
+SIMPLEX_FONT     -> futural
+
+TRIPLEX_SCR_FONT -> rowmant
+
+COMPLEX_FONT     -> timesr
+
+EUROPEAN_FONT    -> (none)
+
+BOLD_FONT        -> (none)

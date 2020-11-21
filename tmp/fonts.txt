@@ -1,0 +1,11 @@
+"BOLD.CHR", 
+"EURO.CHR", 
+"GOTH.CHR", 
+"LCOM.CHR", 
+"LITT.CHR", 
+"SANS.CHR", 
+"SCRI.CHR", 
+"SIMP.CHR", 
+"TRIP.CHR", 
+"TSCR.CHR", 
+
