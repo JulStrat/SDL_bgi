@@ -36,9 +36,11 @@ char *col[] = {
 int main (int argc, char *argv[])
 {
   int gd = DETECT, gm, i;
+  struct palettetype pal;
   
   initgraph (&gd, &gm, "");
   setcolor (WHITE);
+  getpalette (&pal);
   
   for (i = BLACK; i < WHITE + 1; i++) {
     setfillstyle (SOLID_FILL, i);
@@ -49,22 +51,9 @@ int main (int argc, char *argv[])
   }
   
   // change the colours in the default palette
-  setpalette (BLACK, COLOR (RND256, RND256, RND256));
-  setpalette (BLUE, COLOR (RND256, RND256, RND256));
-  setpalette (GREEN, COLOR (RND256, RND256, RND256));
-  setpalette (CYAN, COLOR (RND256, RND256, RND256));
-  setpalette (RED, COLOR (RND256, RND256, RND256));
-  setpalette (BROWN, COLOR (RND256, RND256, RND256));
-  setpalette (LIGHTGRAY, COLOR (RND256, RND256, RND256));
-  setpalette (DARKGRAY, COLOR (RND256, RND256, RND256));
-  setpalette (LIGHTBLUE, COLOR (RND256, RND256, RND256));
-  setpalette (LIGHTGREEN, COLOR (RND256, RND256, RND256));
-  setpalette (LIGHTCYAN, COLOR (RND256, RND256, RND256));
-  setpalette (LIGHTRED, COLOR (RND256, RND256, RND256));
-  setpalette (LIGHTMAGENTA, COLOR (RND256, RND256, RND256));
-  setpalette (YELLOW, COLOR (RND256, RND256, RND256));
-  // leave WHITE alone
-  // setpalette (WHITE, COLOR (RND256, RND256, RND256));
+
+  for (i = BLACK; i < WHITE; i++)
+    setpalette (i, COLOR (RND256, RND256, RND256));
   
   setcolor (WHITE);
   for (i = BLACK; i < WHITE + 1; i++) {
@@ -76,8 +65,13 @@ int main (int argc, char *argv[])
     outtextxy (240, 30 * i + 15, col[i]);
   }
   
-  // restore the palette
-  initpalette ();
+  // restore the palette using the saved one
+  for (i = BLACK; i < WHITE; i++)
+    setpalette (i, COLOR32 (pal.colors[i]));
+  
+  // or, simply:
+  // initpalette ();
+  
   setcolor (WHITE);
   
   for (i = BLACK; i < WHITE + 1; i++) {

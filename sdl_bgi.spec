@@ -2,9 +2,9 @@
 
 %global debug_package %{nil} 
 
-Summary:       BGI-compatible 2D graphics C library
+Summary:       Multiplatform, SDL2-based 'graphics.h' implementation
 Name:          SDL_bgi
-Version:       2.4.1
+Version:       2.4.2
 Release:       1
 License:       ZLib
 Group:         Libraries
@@ -15,12 +15,12 @@ Prefix:        %{_prefix}
 BuildRoot:     %{_tmppath}/%{name}-%{version}-buildroot
 
 %description 
-SDL_bgi is a Borland Graphics Interface (BGI) emulation library based
-on SDL2. This library strictly emulates BGI functions, making it
-possible to compile SDL2 versions of programs written for Turbo
-C/Borland C. ARGB colours, vector fonts, mouse support, and multiple
-windows are also implemented; further, native SDL2 functions may be
-used in SDL_bgi programs.
+SDL_bgi is a Borland Graphics Interface (BGI, aka 'graphics.h')
+emulation library based on SDL2. This library strictly emulates BGI
+functions, making it possible to compile SDL2 versions of programs
+written for Turbo C/Borland C. ARGB colours, vector fonts, mouse
+support, and multiple windows are also implemented; further, native
+SDL2 functions may be used in SDL_bgi programs.
 
 %prep
 %setup -q -n %{name}-%{version}
@@ -45,7 +45,7 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %defattr(644,root,root,755)
 %doc AUTHORS BUGS ChangeLog doc/ INSTALL_Linux.md INSTALL_macOS.md
-%doc INSTALL_Windows.md LICENSE README.md
+%doc INSTALL_Windows.md LICENSE LICENSE_fonts README.md
 %doc sdl_bgi.spec test/ TODO VERSION
 %attr(644,root,root) %{_libdir}/lib%{name}.so
 %attr(644,root,root) %{_includedir}/SDL2/SDL_bgi.h

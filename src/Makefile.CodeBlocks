@@ -16,8 +16,8 @@ HEADER2 = graphics.h
 # while SDL2 is installed in C:\SDL2-2.0.12
 SDL_DIR = /c/SDL2-2.0.12
 INC_DIR = /c/CodeBlocks/MinGW/include/
-SDL_INC = $(SDL_DIR)//x86_64-w64-mingw32/include/
-SDL_LIB = $(SDL_DIR)/x86_64-w64-mingw32/lib/
+SDL_INC = $(SDL_DIR)//i686-w64-mingw32/include/
+SDL_LIB = $(SDL_DIR)/i686-w64-mingw32/lib/
 LIB_DIR = /c/CodeBlocks/MinGW/bin/
 LIB     = $(NAME).dll
 LDFLAGS = -L $(SDL_LIB) -lSDL2

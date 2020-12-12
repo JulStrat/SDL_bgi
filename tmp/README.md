@@ -4,15 +4,10 @@ These are helper programs:
   DosBox. The `bgi_orig_palette` palette uses colours picked up from this
   file.
 
-- `chrwidth.c` dumps the width of each character in all fonts.
+- `chr_decoder.c` dumps a `.CHR` font in a more readable format.
 
 - `dumpchar.c` is used to dump VGA characters used by Turbo C 2.01 in
   DosBox.
 
 - `truncate.c` shows a bug in Turbo C 2.01; text is not truncated out
   of the viewport as it should be. This bug is fixed in Turbo C++ 3.
-
-- `*.CHR` are original Borland fonts, available from
-  <https://github.com/ananay/turboc/tree/master/TC/BGI>
-  Copy them to test/ to make them available to test programs.
-

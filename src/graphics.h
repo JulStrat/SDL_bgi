@@ -1,9 +1,9 @@
 // graphics.h    -*- C -*-
 
-// A BGI (Borland Graphics Library) implementation based on SDL2.
+// `SDL_bgi` is a multiplatform, SDL2-based `graphics.h` implementation.
 // Easy to use, pretty fast, and useful for porting old programs.
 // Guido Gonzato, PhD
-// August 8, 2020
+// November 11, 2020
 
 #include <SDL2/SDL_bgi.h>
 

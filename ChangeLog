@@ -1,6 +1,22 @@
 Changelog
 ---------
 
+v. 2.4.2, 2020-11-11
+- implemented native vector fonts, compatible with Borland .CHR fonts
+- implemented long-forgotten graphics error checks!
+- added resetwinoptions(), getscreensize(), edelay(), getmaxheight(),
+  getmaxwidth(), resizepalette()
+- added undocumented clearviewport() in setbkcolor()
+- changed setwinoptions() to reset options for newly created windows
+- fixed .CHR font loading on Windows
+- fixed graphresult() to provide actual error codes
+- fixed subtle bug in outtextxy() (CP must not be moved)
+- fixed compatibility in getpalette(), getpalettesize(),
+  setallpalette(), setusercharsize()
+- fixed setrgbpalette() to avoid out of range errors
+- improved fill patterns
+- documentation updates
+
 v. 2.4.1, 2020-08-08
 - implemented a 16-colour palette that uses the same RGB values as
   Turbo C. This palette is used if the environment variable

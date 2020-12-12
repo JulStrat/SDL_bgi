@@ -10,8 +10,11 @@
 
 
 Although `SDL_bgi` is almost perfectly compatible with the original
-BGI library, a few minor differences were introduced to take advantage
-of modern SDL graphics. You don't want a slow library!
+`GRAPHICS.H` by Borland, a few minor differences have been introduced.
+The original BGI library mainly targeted the VGA video display
+controller, which was quite limited and provided a maximum of 256
+colours. `SDL_bgi` uses modern graphics capabilities provided by
+`SDL2`, while retaining backwards compatibility as much as possible.
 
 
 ## Compiling programs
@@ -39,10 +42,10 @@ Windows users **must** declare the `main()` function as:
 
     int main (int argc, char *argv[])
 
-even if `argc` and `argv` are not used. Your program will not compile
-if you use a different `main()` definition (i.e. `int main (void)`),
-because of conflict with the `WinMain()` definition. It's an SDL2
-issue; please consult <https://wiki.libsdl.org/FAQWindows> for
+even if `argc` and `argv` are not going to be used. Your program will
+not compile if you use a different `main()` definition (i.e. `int main
+(void)`), because of conflict with the `WinMain()` definition. It's an
+SDL2 issue; please consult <https://wiki.libsdl.org/FAQWindows> for
 details.
 
 Most old programs that use the original BGI library should compile
@@ -55,12 +58,14 @@ opens an 800x600 window, mimicking SVGA graphics. If the environment
 variable `SDL_BGI_RES` is `VGA`, window resolution will be 640x480.
 
 Minimal `dos.h` and `conio.h` are provided in the `test/` directory;
-they're good enough to compile the original `bgidemo.c` unmodified, on
+they're good enough to compile the original `bgidemo.c` unmodified on
 Unix-like platforms.
 
 Please note that non-BGI functions are *not* implemented. If you need
-`conio.h` for GNU/Linux, please see the ncurses-based implementation
-<https://github.com/nowres/conio-for-linux>.
+`conio.h` for GNU/Linux, please have a look at one of these:
+
+- <https://github.com/nowres/conio-for-linux>
+- <https://gitlab.com/marcodiego/conio>
 
 To specify the window size, you can use the new SDL driver:
 
@@ -119,7 +124,7 @@ also available. They trigger fast, slow, and auto mode, respectively.
 
 Documentation and sample BGI programs are available at this address:
 
-<http://www.cs.colorado.edu/~main/cs1300/doc/bgi/>
+<https://winbgim.codecutter.org/V6_0/doc/>
 
 Nearly all programs can be compiled with `SDL_bgi`.
 
@@ -161,69 +166,34 @@ sparingly, because they're slow.
 
 ## Differences
 
-- The following functions may be called but do nothing:
-
-```
-_graphfreemem       - unneeded
-_graphgetmem        - unneeded
-installuserdriver   - it makes no sense in SDL
-registerbgidriver   - it makes no sense in SDL
-registerbgifont     - it makes no sense in SDL_bgi
-setgraphbufsize     - unneeded
-```
-
-- `setpalette()` only affects future drawing. That is, you can't get a
-``rotating palette animation'' as in Turbo C.
-
-- `putimage()` bitwise operations (`XOR_PUT`, `OR_PUT` etc.) are
-applied to RGB colour components. This is apparently not the same
-behaviour as old Turbo C.
-
-- `setusercharsize()` also works with `DEFAULT_FONT`.
+Please see the accompanying document `compatibility`.
 
 
 ## Colours
 
-The default BGI palette includes 16 named colours (`BLACK`...`WHITE`);
-standard BGI functions use this palette. The colours don't have the
-same RGB values as the original BGI colours (the palette is brighter);
-the original RGB values will be used if the environment variable 
-`SDL_BGI_PALETTE` is set to `BGI`.
+`SDL_bgi` has two colour palettes: one for compatibility with old BGI,
+the other for ARGB colours.
 
-An extended ARGB palette of `PALETTE_SIZE` additional colours can be
-created and accessed using functions described below. Please see the
-example programs in the `test/` directory.
+The default BGI palette includes 16 named colours (`BLACK`...`WHITE`);
+standard BGI functions, like `setcolor()` or `setbkcolor()`, use this
+palette. By default, colours in the default palette don't have the
+same RGB values as the original BGI colours; the palette is brighter
+and (hopefully) better looking. The original RGB values will be used
+if the environment variable `SDL_BGI_PALETTE` is set to `BGI`.
+
+An extended ARGB palette of `PALETTE_SIZE` additional colours can
+be used by functions like `setrgbcolor()` or `setbkrgbcolor()`
+described below; please note the `rgb` in the function names. Please
+see the example programs in the `test/` directory.
 
 
 ## Fonts
 
-By default, the original proprietary `.CHR` fonts are implemented
-using free Hershey fonts. Turbo C 2.01 only had the first four, while
-Turbo C++ added six more fonts:
+Fonts that are almost pixel-perfect compatible with the original
+Borland Turbo C++ 3.0 `.CHR` fonts are built in. Characters in the
+ASCII range 32 - 254 are available. Loading `.CHR` fonts from disk is
+also possible.
 
-```
-TRIP.CHR (TRIPLEX_FONT)     --> timesrb
-LITT.CHR (SMALL_FONT)       --> small
-SANS.CHR (SANS_SERIF_FONT)  --> futuram
-GOTH.CHR (GOTHIC_FONT)      --> gothgbt
-SCRI.CHR (SCRIPT_FONT)      --> cursive
-SIMP.CHR (SIMPLEX_FONT)     --> futural
-TSCR.CHR (TRIPLEX_SCR_FONT) --> rowmant
-LCOM.CHR (COMPLEX_FONT)     --> timesr
-BOLD.CHR (BOLD_FONT)        --> (timesrb)
-EURO.CHR (EUROPEAN_FONT)    --> (timesrb)
-```
-
-Please note that EURO and BOLD have no Hershey equivalent; they are
-replaced by Hershey `timesrb`. 
-
-Hershey fonts only support characters in the ASCII range 32-127, as in
-Turbo C 2.01. Font metrics are the same as the original `.CHR` fonts.
-
-Preliminary `.CHR` font support is available. If a `.CHR` font exists
-in the same directory as the running program, it will be used instead
-of its Hershey equivalent. However, font metrics are not pixel-perfect
-yet.
 
 `.CHR` fonts support was added by Marco Diego Aurélio Mesquita.
 
@@ -263,6 +233,10 @@ setwinoptions ("", -1, -1, SDL_WINDOW_FULLSCREEN);
 initwindow (800, 600);
 ```
 
+- `getscreensize(int *x, int *y)` reports the screen width and height
+in `x` and `y`. You can also use related functions `getmaxheight()`
+and `getmaxwidth()`.
+
 - `void sdlbgifast(void)` triggers "fast mode" even if the graphics
 system was opened with `initgraph()`. Calling `refresh()` is needed to
 display graphics.
@@ -294,8 +268,8 @@ is an integer identifier, as returned by `getcurrentwindow()`.
 
 ### Colour Functions
 
-- `void setrgbpalette(int color, int r, int g, int b)` sets an
-additional palette containing RGB colours (up to `MAXRGBCOLORS` + 1).
+- `void setrgbpalette(int color, int r, int g, int b)` sets colours in
+an additional palette containing RGB colours (up to `PALETTE_SIZE`).
 See example in `test/mandelbrot.c`.
 
 - `void setrgbcolor(int col)` and `void setbkrgbcolor(int col)` are
@@ -309,14 +283,15 @@ Allocating colours with `setrgbpalette()` and using `setrgbcolor()` is
 much faster, though.
 
 - `COLOR32(Uint32 color)` works like `COLOR()`, but accepts a colour
-argument as an ARGB integer.
+argument as an ARGB Uint32.
 
 - `colorRGB(int r, int g, int b)` can be used to compose a 32 bit
 colour. This macro is typically used to set values in memory buffers.
 
 - `IS_BGI_COLOR(int c)` and `IS_RGB_COLOR(int c)` return 1 if the
 current colour is standard BGI or RGB, respectively. The argument is
-actually redundant.
+actually redundant; in fact, a colour entry in the range 0-15 may
+belong to both palettes.
 
 - `ALPHA_VALUE(int c)`, `RED_VALUE(int c)`, `GREEN_VALUE(int c)`, and
 `BLUE_VALUE(int c)` return the A, R, G, B component of an RGB colour
@@ -419,11 +394,6 @@ Internet Archive:
 The `bgidemo.c` program demonstrates the capabilities of the BGI
 library. You can download it and compile it using `SDL_bgi`; in
 Windows, you will have to change its `main()` definition.
-
-A version of Turbo C++ that is apparently released as Public Domain is
-available at:
-
-<https://archive.org/details/TurboC_201510>
 
 
 Bugs & Issues

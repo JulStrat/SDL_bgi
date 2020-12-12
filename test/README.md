@@ -4,22 +4,27 @@ Test programs for SDL_bgi
 By Guido Gonzato, PhD
 
 This directory contains a few simple programs that show how to use
-some features of `SDL_bgi`. Type `make` to compile all of them but
-`bgidemo`, which fails to build in MSYS2 because of its wrong `main()`
-declaration. In GNU/Linux, type `make bgidemo` to compile it; in
-MSYS2, please change `int main()` to `int main(int argc, char
-*argv[])` beforehand.
+some features of `SDL_bgi`; type `make` to compile them.
+
+You may want to compile the original `bgidemo.c` program by Borland.
+It's not free software but it can be downloaded from several sources;
+type `make bgidemo` to download it and compile it. You need the `wget`
+tool in the $PATH.
+
+`bgidemo` fails to build on MSYS2 because of its wrong `main()`
+declaration; the Makefiles changes `int main()` to `int main(int argc,
+char *argv[])`.
+
+Original `.CHR` fonts are available here:
+<https://github.com/ananay/turboc/tree/master/TC/BGI>
 
 There may be compiler warnings using gcc releases newer than 7, as in
 Ubuntu 20.
 
-License: all programs except `bgidemo.c` are released under GPL2 or
-later. `bgidemo.c` and `bgidemo.c` are released "for scholarship and
-research purposes only"; <https://archive.org/about/terms.php>
+License: all programs are released under GPL2 or later.
 
-- `bgidemo.c` is the original graphics demo for Turbo C 2.01 by
-Borland. It's available at
-<https://archive.org/details/msdos_borland_turbo_c_2.01>.
+- `boo.c` shows how to make a window transparent and change some of
+  its properties.
 
 - `buffers.c` shows how to use `getbuffer()` and `putbuffer()` to draw
 pixel-based stuff on the screen. Using buffers (i.e. arrays) is much

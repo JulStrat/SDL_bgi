@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# This script builds .deb and/or .rpm packages
+# on GNU/Linux
+
 VERSION=$(cat VERSION)
 
 mkdir -p build && cd build/

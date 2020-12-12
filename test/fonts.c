@@ -58,36 +58,36 @@ int main (int argc, char *argv[])
   setbkcolor (WHITE);
   cleardevice ();
   
-  message (0, pos_y, "TRIPLEX_FONT (Hershey 'timesrb'), default size");
+  message (0, pos_y, "TRIPLEX_FONT, default size");
   settextstyle (TRIPLEX_FONT, HORIZ_DIR, 0);
-  pos_y += 25;
+  pos_y += 20;
   v_skip = textheight ("X");
   outtextxy (10, pos_y, str_sym);
   outtextxy (10, pos_y += v_skip, str_AZ);
   outtextxy (10, pos_y += v_skip, str_az);
-  pos_y += v_skip + 25;
+  pos_y += v_skip + 20;
   
   message (0, pos_y, "SMALL_FONT, default size");
   settextstyle (SMALL_FONT, HORIZ_DIR, 0);
-  pos_y += 25;
+  pos_y += 20;
   v_skip = textheight ("X");
   outtextxy (10, pos_y, str_sym);
   outtextxy (10, pos_y += v_skip, str_AZ);
   outtextxy (10, pos_y += v_skip, str_az);
-  pos_y += v_skip + 25;
+  pos_y += v_skip + 20;
   
-  message (0, pos_y, "SANS_SERIF_FONT (Hershey 'futuram'), default size");
+  message (0, pos_y, "SANS_SERIF_FONT, default size");
   settextstyle (SANS_SERIF_FONT, HORIZ_DIR, 0);
-  pos_y += 25;
+  pos_y += 20;
   v_skip = textheight ("X");
   outtextxy (10, pos_y, str_sym);
   outtextxy (10, pos_y += v_skip, str_AZ);
   outtextxy (10, pos_y += v_skip, str_az);
-  pos_y += v_skip + 25;
+  pos_y += v_skip + 20;
 
-  message (0, pos_y, "GOTHIC_FONT (Hershey 'gothgbt'), default size");
+  message (0, pos_y, "GOTHIC_FONT, default size");
   settextstyle (GOTHIC_FONT, HORIZ_DIR, 0);
-  pos_y += 25;
+  pos_y += 20;
   v_skip = textheight ("X");
   outtextxy (10, pos_y, str_sym);
   outtextxy (10, pos_y += v_skip, str_AZ);
@@ -98,63 +98,62 @@ int main (int argc, char *argv[])
   cleardevice ();
 
   pos_y = 5;
-  message (0, pos_y, "SCRIPT_FONT (Hershey 'cursive'), default size");
+  message (0, pos_y, "SCRIPT_FONT, default size");
   settextstyle (SCRIPT_FONT, HORIZ_DIR, 0);
-  pos_y += 25;
+  pos_y += 20;
   v_skip = textheight ("X");
   outtextxy (10, pos_y, str_sym);
   outtextxy (10, pos_y += v_skip, str_AZ);
   outtextxy (10, pos_y += v_skip, str_az);
-  pos_y += v_skip + 25;
+  pos_y += v_skip + 20;
 
-  message (0, pos_y, "SIMPLEX_FONT (Hershey 'futural'), default size");
+  message (0, pos_y, "SIMPLEX_FONT, default size");
   settextstyle (SIMPLEX_FONT, HORIZ_DIR, 0);
-  pos_y += 25;
+  pos_y += 20;
   v_skip = textheight ("X");
   outtextxy (10, pos_y, str_sym);
   outtextxy (10, pos_y += v_skip, str_AZ);
   outtextxy (10, pos_y += v_skip, str_az);
-  pos_y += v_skip + 25;
+  pos_y += v_skip + 20;
 
-  message (0, pos_y, "TRIPLEX_SCR_FONT (Hershey 'rowmant'), default size");
+  message (0, pos_y, "TRIPLEX_SCR_FONT, default size");
   settextstyle (TRIPLEX_SCR_FONT, HORIZ_DIR, 0);
-  pos_y += 25;
+  pos_y += 20;
   v_skip = textheight ("X");
   outtextxy (10, pos_y, str_sym);
   outtextxy (10, pos_y += v_skip, str_AZ);
   outtextxy (10, pos_y += v_skip, str_az);
-  pos_y += v_skip + 25;
+  pos_y += v_skip + 20;
 
   getch ();
   cleardevice ();
 
   pos_y = 5;
-  message (0, pos_y, "COMPLEX_FONT (Hershey 'timresr'), default size");
+  message (0, pos_y, "COMPLEX_FONT, default size");
   settextstyle (COMPLEX_FONT, HORIZ_DIR, 0);
-  pos_y += 25;
+  pos_y += 15;
   v_skip = textheight ("X");
   outtextxy (10, pos_y, str_sym);
   outtextxy (10, pos_y += v_skip, str_AZ);
   outtextxy (10, pos_y += v_skip, str_az);
-  pos_y += v_skip + 25;
+  pos_y += v_skip + 15;
 
-  message (0, pos_y, "EUROPEAN_FONT (Hershey 'timresrb'), default size");
+  message (0, pos_y, "EUROPEAN_FONT, default size");
   settextstyle (EUROPEAN_FONT, HORIZ_DIR, 0);
-  pos_y += 25;
+  pos_y += 15;
   v_skip = textheight ("X");
   outtextxy (10, pos_y, str_sym);
   outtextxy (10, pos_y += v_skip, str_AZ);
   outtextxy (10, pos_y += v_skip, str_az);
-  pos_y += v_skip + 25;
+  pos_y += v_skip + 15;
 
-  message (0, pos_y, "BOLD_FONT (Hershey 'timresrb'), default size");
+  message (0, pos_y, "BOLD_FONT, default size");
   settextstyle (BOLD_FONT, HORIZ_DIR, 0);
-  pos_y += 25;
+  pos_y += 15;
   v_skip = textheight ("X");
   outtextxy (10, pos_y, str_sym);
   outtextxy (10, pos_y += v_skip, str_AZ);
   outtextxy (10, pos_y += v_skip, str_az);
-  pos_y += v_skip + 25;
 
   getch ();
   cleardevice ();
@@ -162,7 +161,19 @@ int main (int argc, char *argv[])
   settextstyle (TRIPLEX_FONT, VERT_DIR, 0);
   // setusercharsize (2, 1, 2, 1);
   settextjustify (CENTER_TEXT, CENTER_TEXT);
-  outtextxy (getmaxx () / 2, getmaxy () / 2,
+  outtextxy (getmaxx () * 0.25, getmaxy () / 2,
+	    "This is VERTICAL TEXT");
+
+  settextstyle (SANS_SERIF_FONT, VERT_DIR, 0);
+  // setusercharsize (2, 1, 2, 1);
+  settextjustify (CENTER_TEXT, CENTER_TEXT);
+  outtextxy (getmaxx () * 0.5, getmaxy () / 2,
+	    "This is VERTICAL TEXT");
+
+  settextstyle (GOTHIC_FONT, VERT_DIR, 0);
+  // setusercharsize (2, 1, 2, 1);
+  settextjustify (CENTER_TEXT, CENTER_TEXT);
+  outtextxy (getmaxx () * 0.75, getmaxy () / 2,
 	    "This is VERTICAL TEXT");
 
   getch ();
@@ -177,7 +188,7 @@ int main (int argc, char *argv[])
   outtextxy (10, pos_y, str_sym);
   outtextxy (10, pos_y += v_skip, str_AZ);
   outtextxy (10, pos_y += v_skip, str_az);
-  pos_y += v_skip + 25;
+  pos_y += v_skip + 20;
 
   message (0, pos_y, "SMALL_FONT, size 3");
   settextstyle (SMALL_FONT, HORIZ_DIR, 0);
@@ -187,7 +198,7 @@ int main (int argc, char *argv[])
   outtextxy (10, pos_y, str_sym);
   outtextxy (10, pos_y += v_skip, str_AZ);
   outtextxy (10, pos_y += v_skip, str_az);
-  pos_y += v_skip + 25;
+  pos_y += v_skip + 20;
 
   message (0, pos_y, "SMALL_FONT, size 4 x 8");
   settextstyle (SMALL_FONT, HORIZ_DIR, 0);
@@ -197,11 +208,11 @@ int main (int argc, char *argv[])
   outtextxy (10, pos_y, str_sym);
   outtextxy (10, pos_y += v_skip, str_AZ);
   outtextxy (10, pos_y += v_skip, str_az);
-  pos_y += v_skip + 25;
+  pos_y += v_skip + 20;
 
   getch ();
   closegraph ();
   
 } /* main () */
 
-/* ----- end of file hershey.c */
+/* ----- end of file fonts.c */

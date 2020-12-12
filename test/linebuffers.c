@@ -32,13 +32,14 @@
 
 void shiftbuffer (Uint32 *line)
 {
-  // scroll line elements 1 position left
+  // scroll line elements 1 position to the left
   
   Uint32
     tmp;
   
   tmp = line[0];
-  memmove (&line[0], &line[1], WIDTH * sizeof (Uint32));
+  memmove ( (void *) &line[0], (const void *) &line[1],
+	    (size_t) (WIDTH * sizeof (Uint32)) );
   line[WIDTH - 1] = tmp;
   
 } // shiftbuffer()

@@ -7,8 +7,9 @@ SRC     = $(NAME).c
 OBJ     = $(NAME).o
 HEADER1 = SDL_bgi.h 
 HEADER2 = graphics.h
-FONTS   = cursive.h futural.h futuram.h gothgbt.h \
-          rowmant.h small.h timesrb.h timesr.h
+FONTS   = bold.h euro.h goth.h lcom.h \
+          litt.h sans.h scri.h simp.h \
+	  trip.h tscr.h
 
 # Detect the platform: GNU/Linux, macOS, or MSYS2
 PLATFORM := $(shell uname -s)

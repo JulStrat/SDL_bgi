@@ -30,7 +30,7 @@
 #include <stdlib.h>
 #include <graphics.h>
 
-int max_iter = 100;
+int max_iter = 100; // max iteration
 int maxx, maxy;
 
 void mandelbrot (double, double, double, double);
@@ -292,6 +292,8 @@ int main (int argc, char *argv[])
     
     case 'i':
       max_iter += 50;
+      if (max_iter > PALETTE_SIZE)
+	max_iter = PALETTE_SIZE;
       flag = redraw = 1;
       purple_palette ();
       blue_palette ();
@@ -300,6 +302,8 @@ int main (int argc, char *argv[])
     
     case 'd':
       max_iter -= 50;
+      if (max_iter < 50)
+	max_iter = 50;
       flag = redraw = 1;
       purple_palette ();
       blue_palette ();

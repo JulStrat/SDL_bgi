@@ -104,9 +104,9 @@ void init_sdlbgi (void)
 		 SDL_WINDOWPOS_UNDEFINED,
 		 SDL_WINDOWPOS_UNDEFINED,
 		 SDL_WINDOW_FULLSCREEN);
-  // detectgraph (&gd, &gm);
-  // initgraph (&gd, &gm, "");
-  initwindow (0, 0);
+  detectgraph (&gd, &gm);
+  initgraph (&gd, &gm, "");
+  // initwindow (0, 0);
   sdlbgifast ();
   maxx = getmaxx ();
   maxy = getmaxy ();
@@ -1269,9 +1269,9 @@ void textdemo (void)
   settextstyle (SMALL_FONT, HORIZ_DIR, 0);
   setusercharsize (6, 1, 12, 1);
   settextjustify (CENTER_TEXT, CENTER_TEXT);
-  outtextxy (xm, ym, "CENTER_TEXT, CENTER_TEXT");
+  outtextxy (xm, ym, "Center_Text, Center_Text");
   settextstyle (SMALL_FONT, VERT_DIR, 10);
-  outtextxy (xm, ym, "CENTER_TEXT, CENTER_TEXT");
+  outtextxy (xm, ym, "Center_Text, Center_Text");
   refresh ();
   
   get_click ();

@@ -4,7 +4,7 @@
 # C compiler: gcc or clang
 CC = gcc
 
-# Detect the platform: GNU/Linux, Darwin (OS X), Mingw-w64
+# Detect the platform: GNU/Linux, Darwin (macOS), Mingw-w64
 PLATFORM := $(shell uname -s)
 
 # GNU/Linux
@@ -28,7 +28,7 @@ CFLAGS = -std=gnu99 -O2 -g -I. -I/mingw64/include -I/mingw64/include/SDL
 LIBS = -lmingw32 -L/mingw64/bin -lSDL_bgi -lSDL2main -lSDL2 # -mwindows
 endif
 
-PROGRAMS = buffers cellular dla fern floodfilltest fonts \
+PROGRAMS = boo buffers cellular dla fern floodfilltest fonts \
            hopalong life linebuffers kaleido mandelbrot mousetest \
 	   multiwin plasma psychedelia sdlbgidemo setpalette simple \
 	   turtledemo
@@ -38,8 +38,24 @@ all: $(PROGRAMS)
 # bgidemo does not compile by default in MSYS2 because of the main()
 # declaration. Change it as: int main (int argc, char *argv[])
 
-bgidemo: bgidemo.c 
+WGET := $(shell which wget)
+
+bgidemo: bgidemo.c
+ifeq ($(msys),MSYS)
+	# fix wrong main() definition
+	sed -i 's/main()/main(int argc, char *argv[])/' bgidemo.c
+endif
 	$(CC) $(CFLAGS) -I. -o bgidemo bgidemo.c $(LIBS) -lm
+
+bgidemo.c:
+ifdef WGET
+	wget http://libxbgi.sourceforge.net/bgidemo.c
+else
+	$(info Could not find 'wget', can't download bgidemo.c)
+endif
+
+boo: boo.c 
+	$(CC) $(CFLAGS) -o boo boo.c $(LIBS)
 
 buffers: buffers.c 
 	$(CC) $(CFLAGS) -o buffers buffers.c $(LIBS)
@@ -99,6 +115,6 @@ turtledemo: turtledemo.c turtle.c
 	$(CC) $(CFLAGS) -o turtledemo turtledemo.c turtle.c $(LIBS) -lm
 
 clean:
-	rm -rf $(PROGRAMS) a.out *o f90_test *dSYM
+	rm -rf $(PROGRAMS) bgidemo* a.out *o f90_test *dSYM
 
 # --- end of Makefile

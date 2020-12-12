@@ -199,7 +199,9 @@ int `RED_VALUE` (int color);
 
 void `_putpixel` (int x, int y);
 
-void `closewindow` (int);
+void `closewindow` (int id);
+
+int `edelay` (int msec);
 
 int `event` (void);
 
@@ -219,6 +221,8 @@ void `getmouseclick` (int kind, int \*x, int \*y);
 
 void `getrightclick` (void);
 
+void `getscreensize` (int *x, int *y);
+
 void `initpalette` (void);
 
 int `initwindow` (int width, int height);
@@ -237,13 +241,17 @@ void `readimagefile` (char \*filename, int x1, int y1, int x2, int y2);
 
 void `refresh` (void);
 
+void `resetwinoptions` (int id, char *title, int x, int y);
+
+int  `resizepalette` (Uint32);
+
 void `sdlbgiauto` (void);
 
 void `sdlbgifast` (void);
 
 void `sdlbgislow` (void);
 
-void `setalpha` (int col, Uint32 alpha);
+void `setalpha` (int col, Uint8 alpha);
 
 void `setbkrgbcolor` (int color);
 
@@ -256,6 +264,8 @@ void `setrgbcolor` (int color);
 void `setrgbpalette` (int colornum, int red, int green, int blue); 
 
 void `setwinoptions` (char \*title, int x, int y, Uint32 flags);
+
+void `setwintitle` (int id, char \*title);
 
 void `showerrorbox` (const char *message);
 

@@ -9,7 +9,7 @@ The following sections were tested with:
 
 - msys2-x86_64-20200720.exe (**note:** previous releases may not work!)
 - codeblocks-20.03mingw
-- Dev-Cpp 5.11 TDM-GCC 4.9.2
+- Dev-Cpp 5.11 + TDM-GCC 4.9.2
 
 
 ## Installing the MSYS2 + Mingw-w64 Binaries
@@ -65,18 +65,16 @@ install `make`, `mingw-w64-x86_64-SDL2`, and `mingw-w64-x86_64-gcc`.
 **Do not** install plain `gcc`. Also, make sure that directory
 `/mingw64/bin` in included in the $PATH:
 
-````
-$ pacman -S make mingw-w64-x86_64-SDL2 mingw-w64-x86_64-gcc
-# ...
-$ # expand the $PATH variable
-$ echo export PATH=/mingw64/bin:$PATH >> $HOME/.bashrc
-````
+    $ pacman -S make mingw-w64-x86_64-SDL2 mingw-w64-x86_64-gcc
+    # ...
+    $ # expand the $PATH variable
+    $ echo export PATH=/mingw64/bin:$PATH >> $HOME/.bashrc
 
 ## MSYS2 + Mingw-w64
 
 Start the MSYS2 shell, then run the following commands:
 
-    $ VERSION=2.4.1
+    $ VERSION=2.4.2
     $ tar zxvf SDL_bgi-$VERSION.tar.gz
     $ cd SDL_bgi-$VERSION/src
     $ make
@@ -93,7 +91,7 @@ Files will be installed in these directories:
 
 Start the MSYS2 shell, then run the following commands:
 
-    $ VERSION=2.4.1
+    $ VERSION=2.4.2
     $ tar zxvf SDL_bgi-$VERSION.tar.gz
     $ cd SDL_bgi-$VERSION/src
     $ PATH=/c/CodeBlocks/MinGW/bin/:$PATH && make -f Makefile.CodeBlocks
@@ -112,7 +110,7 @@ in these directories:
 
 Start the MSYS2 shell, then run the following commands:
 
-    $ VERSION=2.4.1
+    $ VERSION=2.4.2
     $ tar zxvf SDL_bgi-$VERSION.tar.gz
     $ cd SDL_bgi-$VERSION/src
     $ PATH=/c/CodeBlocks/MinGW/bin/:$PATH && make -f Makefile.DevCpp

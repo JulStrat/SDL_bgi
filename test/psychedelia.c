@@ -47,13 +47,6 @@ int main (int argc, char **argv)
   float
     k1, k2, k3; // plasma parameters
   
-  // make a palette
-  for (int i = 0; i < 255; i++)
-    setrgbpalette (i, 
-		   (int) fabs((128. - 127.*sinf((float)i*M_PI/32.))),
-		   (int) fabs((128. - 127.*sinf((float)i*M_PI/64.))),
-		   (int) fabs((128. - 127.*sinf((float)i*M_PI/128.))) );
-
   // parameters are allowed to range from 0 to 256
 
   k1 = 128.;
@@ -66,6 +59,13 @@ int main (int argc, char **argv)
   initwindow (WIDTH, HEIGHT);
   setbkcolor (BLACK);
   refresh ();
+  
+  // make a palette
+  for (int i = 0; i < 255; i++)
+    setrgbpalette (i, 
+		   (int) fabs((128. - 127.*sinf((float)i*M_PI/32.))),
+		   (int) fabs((128. - 127.*sinf((float)i*M_PI/64.))),
+		   (int) fabs((128. - 127.*sinf((float)i*M_PI/128.))) );
   
   int stop = 0;
   

@@ -4,8 +4,8 @@ The easiest way to install `SDL_bgi` requires the Terminal, the
 `clang` compiler, the Homebrew package manager, and the SDL2 library.
 Full Xcode is not needed.
 
-- open the Terminal and type `clang`. You'll be prompted to install
-  it, as part of the Command Line Tools.
+- open the Terminal and type `clang`. If it's missing, you'll be
+  prompted to install it, as part of the Command Line Tools.
 
 - go to <https://brew.sh> and install Homebrew using the provided
   command. It will take a few minutes.
@@ -24,7 +24,7 @@ You're now ready to compile `SDL_bgi`.
 To compile and install `SDL_bgi`, start Terminal and run the following
 commands:
 
-    % VERSION=2.4.1
+    % VERSION=2.4.2
     % tar xvf SDL_bgi-$VERSION.tar
     % cd SDL_bgi-$VERSION/src
     % make
@@ -49,4 +49,3 @@ Please see the `using.md` file in the `doc/` directory.
 Enjoy!
 
 Guido =8-)
-

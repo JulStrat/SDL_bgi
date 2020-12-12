@@ -1,13 +1,13 @@
 // SDL_bgi.c        -*- C -*-
 
-// A BGI (Borland Graphics Library) implementation based on SDL2.
-// Easy to use, pretty fast, and useful for porting old programs
-// and for teaching.
+// SDL_bgi is a multiplatform, SDL2-based GRAPHICS.H implementation.
+// Easy to use, pretty fast, useful for porting old programs
+// and for teaching introductory computer graphics.
 //
 // By Guido Gonzato, PhD
 // Automatic refresh patch, CHR font support:
 // Marco Diego Aurélio Mesquita
-// August 8, 2020
+// November 5, 2020
 
 // ZLib License
 
@@ -35,25 +35,31 @@ freely, subject to the following restrictions:
 
 #include "SDL_bgi.h"
 
-// Hershey fonts - EURO and BOLD have no Hershey equivalent
+// Fonts
 
-#include "timesrb.h" // TRIPLEX_FONT     -> TRIP.CHR
-#include "small.h"   // SMALL_FONT       -> LITT.CHR
-#include "futuram.h" // SANS_SERIF_FONT  -> SANS.CHR
-#include "gothgbt.h" // GOTHIC_FONT      -> GOTH.CHR
-#include "cursive.h" // SCRIPT_FONT      -> SCRI.CHR
-#include "futural.h" // SIMPLEX_FONT     -> SIMP.CHR
-#include "rowmant.h" // TRIPLEX_SCR_FONT -> TSCR.CHR
-#include "timesr.h"  // COMPLEX_FONT     -> LCOM.CHR
+#include "trip.h"    // TRIPLEX_FONT
+#include "litt.h"    // SMALL_FONT
+#include "sans.h"    // SANS_SERIF_FONT
+#include "goth.h"    // GOTHIC_FONT
+#include "scri.h"    // SCRIPT_FONT
+#include "simp.h"    // SIMPLEX_FONT
+#include "tscr.h"    // TRIPLEX_SCR_FONT
+#include "lcom.h"    // COMPLEX_FONT
+#include "euro.h"    // EUROPEAN_FONT
+#include "bold.h"    // BOLD_FONT
 
-// stuff gets drawn here; these variables are available to the programmer.
-// All the rest is hidden.
+// stuff gets drawn here; these variables are available to the
+// programmer. All the rest is hidden.
 
 SDL_Window   *bgi_window;
 SDL_Renderer *bgi_renderer;
 SDL_Texture  *bgi_texture;
 
-// static variables. I am not afraid of global variables.
+// ARGB palette initial size; it can be resized using resizepalette().
+
+Uint32       PALETTE_SIZE = 4096;
+
+// static global variables. I am not afraid of global variables.
 
 static SDL_Window   *bgi_win[NUM_BGI_WIN];
 static SDL_Renderer *bgi_rnd[NUM_BGI_WIN];
@@ -62,14 +68,13 @@ static SDL_Texture  *bgi_txt[NUM_BGI_WIN];
 // multiple windows
 
 static int
-  bgi_current_window = -1,         // id of current window
-  bgi_num_windows = 0,             // number of created windows
   bgi_active_windows[NUM_BGI_WIN]; // window IDs
 
 // explanation: up to NUM_BGI_WIN windows can be created and deleted
-// as needed. 'bgi_active_windows[]' keeps track of created (1) and closed (0)
-// windows; 'bgi_current_window' is the ID of the current (= being drawn on)
-// window; 'bgi_num_windows' keeps track of the current number of windows
+// as needed. 'bgi_active_windows[]' keeps track of created (1) and
+// closed (0) windows; 'bgi_current_window' is the ID of the
+// current (= being drawn on) window; 'bgi_num_windows' keeps track
+//  of the current number of windows
 
 static SDL_Surface
   *bgi_vpage[VPAGES]; // array of visual pages; single window only
@@ -90,22 +95,20 @@ static Uint32
 // copied to bgi_renderer, and finally bgi_renderer is made present.
 
 // The palette contains the BGI colors, entries 0:MAXCOLORS;
-// then three entries for temporary fg, bg, and fill ARGB colors
+// then four entries for temporary fg, bg, fill, and ARGB color
 // allocated with COLOR(); then user-defined ARGB colors
 
-// temporary colours
-
-enum { TMP_FG_COL = 16, TMP_BG_COL = 17, TMP_FILL_COL = 18 };
-
 #define BGI_COLORS  MAXCOLORS + 1
-#define TMP_COLORS  3
 
-static Uint32
-  bgi_argb_palette[BGI_COLORS + TMP_COLORS + PALETTE_SIZE]; // all colors
+// this is the global palette, containing all colours:
+// size is BGI_COLORS + TMP_COLORS + PALETTE_SIZE
 
-static Uint32
-  bgi_std_palette[1 + MAXCOLORS] = { // 0 - 15
-    // ARGB colour definitions are taken from https://www.colorhexa.com/
+static Uint32 *bgi_argb_palette;
+
+// default 16-colour palette; values can't be changed.
+// RGB colour definitions are taken from https://www.colorhexa.com/
+static const Uint32
+  bgi_std_palette[BGI_COLORS] = { // 0 - 15
     0xff000000, // BLACK
     0xff0000ff, // BLUE
     0xff00ff00, // GREEN
@@ -124,10 +127,10 @@ static Uint32
     0xffffffff  // WHITE
   };
 
-static Uint32
-  bgi_orig_palette[1 + MAXCOLORS] = { // 0 - 15
-    // original Borland RGB colour definitions, picked up from
-    // a screenshot of Turbo C 2.01 running in DosBox.
+// original Borland RGB colour definitions, picked up from a screenshot
+// of Turbo C 2.01 running in DosBox. Values can't be changed.
+static const Uint32
+  bgi_orig_palette[BGI_COLORS] = { // 0 - 15
     0xff000000, // BLACK
     0xff0000aa, // BLUE
     0xff00aa00, // GREEN
@@ -156,10 +159,11 @@ static Uint16
   };
 
 static Uint32
-  bgi_tmp_color_argb,        // temporary color set up by COLOR()
   bgi_window_flags = 0;      // window flags
 
 static int
+  bgi_current_window = -1,   // id of current window
+  bgi_num_windows = 0,       // number of created windows
   bgi_window_x =             // window initial position
     SDL_WINDOWPOS_CENTERED,
   bgi_window_y =
@@ -183,57 +187,32 @@ static int
   bgi_vp,                    // visual page number
   bgi_np = 0,                // number of actual pages
   bgi_refresh_rate = 0,      // window refresh rate
+  bgi_error_code =
+  grNoInitGraph,             // graphics error code
   bgi_last_key_pressed,      // last key pressed
-  bgi_hershey_font_height,   // font height
-  bgi_hershey_offset;        // font vertical offset
+  bgi_internal_font_height,  // font height
+  bgi_internal_offset,       // offset for outtextxy()
+  bgi_internal_font_desc;
 
-// Hershey fonts
+// internal fonts
 
 // pointer to current font
 static const char
-  **bgi_hershey_font;
+  **bgi_internal_font;
 
 // pointer to current array of font size
 static const int
-  *bgi_hershey_font_size;
+  *bgi_internal_font_size;
 
 // pointer to current array of width
 static char
-  *bgi_hershey_font_width;
+  *bgi_internal_font_width;
 
 #define NUM_FONTS  11
 #define FONT_SIZES 11
 
 static float
-  bgi_font_magnification[NUM_FONTS][FONT_SIZES] = {
-
-    // each value was calculated with Turbo C;
-    // font height is the same
-
-    // DEFAULT_FONT
-    {1.0, 1.0,  2.0,  3.0,  4.0, 5.0,  6.0,  7.0, 8.0, 9.0, 10.0},
-    // TRIPLEX_FONT
-    {1.0, 0.57, 0.64, 0.75, 1.0, 1.32, 1.64, 2.0, 2.5, 3.0, 4.0},
-    // SMALL_FONT,
-    {1.0, 0.5,  0.63, 0.75, 1.0, 1.25, 1.63, 2.0, 2.5, 3.0, 4.0},
-    // SANS_SERIF_FONT
-    {1.0, 0.57, 0.64, 0.75, 1.0, 1.32, 1.64, 2.0, 2.5, 3.0, 4.0},
-    // GOTHIC_FONT
-    {1.0, 0.57, 0.64, 0.75, 1.0, 1.32, 1.64, 2.0, 2.5, 3.0, 4.0},
-    // SCRIPT_FONT
-    {1.0, 0.6, 0.65, 0.73, 1.0, 1.32, 1.65, 2.0, 2.49, 3.0, 4.0},
-    // SIMPLEX_FONT
-    {1.0, 0.6, 0.66, 0.74, 1.0, 1.32, 1.66, 2.0, 2.49, 3.0, 4.0},
-    // TRIPLEX_SCR_FONT
-    {1.0, 0.58, 0.65, 0.74, 1.0, 1.32, 1.65, 2.0, 2.48, 3.0, 4.0},
-    // COMPLEX_FONT
-    {1.0, 0.6, 0.66, 0.74, 1.0, 1.31, 1.66, 2.0, 2.49, 3.0, 4.0},
-    // fonts with no Hershey equivalent
-    // EUROPEAN_FONT copied from TRIPLEX_FONT
-    {1.0, 0.57, 0.64, 0.75, 1.0, 1.32, 1.64, 2.0, 2.5, 3.0, 4.0},
-    // BOLD FONT copied from TRIPLEX_FONT
-    {1.0, 0.57, 0.64, 0.75, 1.0, 1.32, 1.64, 2.0, 2.5, 3.0, 4.0},
-  };
+  bgi_font_magnification[NUM_FONTS][FONT_SIZES];
 
 static float
   bgi_user_size_x = 1.0,
@@ -241,8 +220,9 @@ static float
 
 // mouse structure
 struct {
-  int x;                  // coordinates of last mouse click
+  int x;       // coordinates of last mouse click
   int y;
+  Uint8 btn;   // button clicked
 } bgi_mouse;
 
 // mutex for update timer/thread
@@ -261,13 +241,14 @@ SDL_bool
   bgi_window_is_hidden = SDL_FALSE,  // is window hidden?
   bgi_key_pressed      = SDL_FALSE,  // any key pressed?
   bgi_xkey_pressed     = SDL_FALSE,  // any ext. key pressed?
-  bgi_refresh_needed   = SDL_FALSE;  // is refresh needed?
+  bgi_refresh_needed   = SDL_FALSE,  // is refresh needed?
+  bgi_use_newpalette   = SDL_TRUE;   // use the new palette?
 
 static float
   bgi_font_mag_x = 1.0,  // font magnification
   bgi_font_mag_y = 1.0;
 
-// pointer to 8x8 font array, dumped from DosBox
+// pointer to 8x8 font array, dumped from DOSBox
 
 static unsigned char bgi_bitmap_font[8 * 256] = {
 
@@ -528,13 +509,14 @@ static unsigned char bgi_bitmap_font[8 * 256] = {
   0x00,0x00,0x3c,0x3c,0x3c,0x3c,0x00,0x00, // 254 0xfe
   0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00, // 255 0xff
 
-};
+}; // bgi_bitmap_font[]
 
 static struct arccoordstype bgi_last_arc;
 static struct fillsettingstype bgi_fill_style;
 static struct linesettingstype bgi_line_style;
 static struct textsettingstype bgi_txt_style;
 static struct viewporttype vp;
+// used by palette-related functions
 static struct palettetype pal;
 
 // utility functions
@@ -569,6 +551,26 @@ static void refresh_window   (void);
 
 // -----
 
+// Let's start!
+
+// Error handling
+
+static void check_initgraph ()
+{
+  // Checks if the graphics system was initialised.
+
+  char *error;
+
+  if (grOk != bgi_error_code) {
+     error = grapherrormsg (bgi_error_code);
+     fprintf (stderr, "BGI error: %s\n", error);
+    exit (1);
+  }
+
+} // check_initgraph ()
+
+// -----
+
 // CHR fonts support. The following code was written by
 // Marco Diego Aurélio Mesquita
 // Some code cleanup by GG
@@ -590,6 +592,8 @@ struct font {
   struct stroke *glyphs[256];
   int widths[256];
 };
+
+// -----
 
 static struct font *decode (FILE *fp)
 {
@@ -752,15 +756,14 @@ static struct font *decode (FILE *fp)
   if(real_first != 1)
     i += real_first;
 
-  while (!feof(fp)) {
-    
-    char b0 = fgetc (fp);
-    char b1 = fgetc (fp);
+  char b0, b1;
+
+  while ( EOF != fscanf (fp, "%c%c", &b0, &b1) ) {
 
     int opcode = ((b0&0x80) >> 6) + ((b1&0x80) >> 7);
     int x = ((int)((signed char)((b0&0x7f) << 1)))/2;
     int y = ((int)((signed char)((b1&0x7f) << 1)))/2;
-    //printf("Opcode: %d, x = %d, y = %d\n", opcode, x, y);
+    // printf("Opcode: %d, x = %d, y = %d\n", opcode, x, y);
 
     j++;
 
@@ -787,7 +790,8 @@ static struct font *decode (FILE *fp)
   free (width_table);
 
   return ret;
-}
+
+} // decode ()
 
 // -----
 
@@ -806,7 +810,7 @@ static void destroy_font (struct font *f)
 // -----
 
 // fast line drawing routine, for display_glyph()
-void lineto_fast  (int x, int y);
+static void lineto_fast  (int x, int y);
 
 // -----
 
@@ -821,17 +825,17 @@ static int display_glyph (struct font *f, int c, float scale_x,
 
   // fix here
   // printf("Capital: %d, Base: %d, Desc: %d\n", f->capheight, f->baseheight, f->decheight);
-  
-  int offset_y = scale_y * (f->capheight + f->baseheight) - 
+
+  int offset_y = scale_y * (f->capheight + f->baseheight) -
     (scale_y - 1) * f->decheight;
-  
+
   int offset_x = scale_x * (f->capheight + f->baseheight) -
     (scale_x - 1) * f->decheight;
-  
+
   //offset = scale_y*(f->capheight + f->baseheight + f->decheight);
   // printf("Offset x: %d, y: %d\n", offset_x, offset_y);
 
-  moveto (x, y/*+ offset*scale_y*/);
+  moveto (x, y /* + offset*scale_y */);
 
   for (int j = 0; f->glyphs[c][j].op != OP_STOP; j++) {
 
@@ -852,7 +856,7 @@ static int display_glyph (struct font *f, int c, float scale_x,
       lineto_fast (dx, dy);
     else
       moveto(dx, dy);
-  
+
   } // for
 
   return f->widths[c];
@@ -861,21 +865,26 @@ static int display_glyph (struct font *f, int c, float scale_x,
 
 // -----
 
-struct font *load_font(char *filename)
+static struct font *load_font(char *filename)
 {
   // Loads a .CHR font from disk.
 
   struct font *ret;
   FILE *fp;
-  fp = fopen(filename, "r");
+
+  // !!! open the font file with "rb"
+  // for compatibility with Mingw64
+
+  fp = fopen(filename, "rb");
   if (!fp)
     return NULL;
 
-  ret = decode(fp);
+  ret = decode (fp);
 
   fclose (fp);
   return ret;
-}
+
+} // load_font ()
 
 #define MAX_FONTS (20 + LAST_SPEC_FONT)
 
@@ -909,10 +918,11 @@ void _graphfreemem (void *ptr, unsigned int size)
 
 // -----
 
-void _graphgetmem (unsigned int size)
+void * _graphgetmem (unsigned int size)
 {
 
   unimplemented ("_graphgetmem");
+  return NULL;
 
 } // _graphgetmem ()
 
@@ -925,32 +935,6 @@ int installuserdriver (char *name, int (*detect)(void))
   return 0;
 
 } // installuserdriver ()
-
-// -----
-
-int installuserfont (char *name)
-{
-  
-  // Loads a .CHR font from disk.
-
-  //printf("Will try to load font %s\n", name);
-  
-  if (chr_next_font == MAX_FONTS)
-    return grError;
-
-  chr_fonts[chr_next_font] = load_font(name);
-
-  if (!chr_fonts[chr_next_font]) {
-    fprintf (stderr, "Could not load font %s!\n", name);
-    return grError;
-  }
-
-  // printf("Font %s successfully loaded!\n", name);
-
-  chr_next_font++;
-  return chr_next_font - 1;
-
-} // installuserfont ()
 
 // -----
 
@@ -995,6 +979,8 @@ void arc (int x, int y, int stangle, int endangle, int radius)
 
   // Quick and dirty for now, Bresenham-based later (maybe)
 
+  check_initgraph ();
+
   int angle;
 
   if (0 == radius)
@@ -1026,6 +1012,8 @@ void bar (int left, int top, int right, int bottom)
 {
   // Draws a filled-in rectangle (bar), using the current fill colour
   // and fill pattern.
+
+  check_initgraph ();
 
   int
     y,
@@ -1063,6 +1051,8 @@ void bar3d (int left, int top, int right,
 {
   // Draws a three-dimensional, filled-in rectangle (bar), using
   // the current fill colour and fill pattern.
+
+  check_initgraph ();
 
   Uint32 tmp, tmpcolor;
 
@@ -1134,6 +1124,8 @@ void circle (int x, int y, int radius)
 {
   // Draws a circle of the given radius at (x, y).
 
+  check_initgraph ();
+
   // the Bresenham algorithm draws a better-looking circle
 
   if (NORM_WIDTH == bgi_line_style.thickness)
@@ -1149,6 +1141,8 @@ void cleardevice (void)
 {
   // Clears the graphics screen, filling it with the current
   // background color.
+
+  check_initgraph ();
 
   int x, y;
 
@@ -1170,6 +1164,8 @@ void clearviewport (void)
   // Clears the viewport, filling it with the current
   // background color.
 
+  check_initgraph ();
+
   int x, y;
 
   bgi_cp_x = bgi_cp_y = 0;
@@ -1188,6 +1184,8 @@ void clearviewport (void)
 void closegraph (void)
 {
   // Closes the graphics system.
+
+  check_initgraph ();
 
   // waits for update callback to finish
 
@@ -1216,6 +1214,9 @@ void closegraph (void)
   // Only calls SDL_Quit if not running on fullscreen
   if (SDL_FULLSCREEN != bgi_gm)
     SDL_Quit ();
+  
+  // the program might continue in text mode
+  bgi_num_windows = 0;
 
 } // closegraph ()
 
@@ -1223,20 +1224,14 @@ void closegraph (void)
 
 void delay (int msec)
 {
-  // Waits for msec milliseconds. Implemented as a loop,
-  // because apparently SDL_Delay() ignores pending events
-  // such as keypresses.
+  // Waits for msec milliseconds, ignoring events. Use 'edelay()'
+  // if you need to handle pending events.
 
-  Uint32
-    stop;
+  check_initgraph ();
 
   update ();
-
-  stop = SDL_GetTicks () + msec;
-
-  do {
-    ;
-  } while (SDL_GetTicks () < stop);
+  // should we use usleep()?
+  SDL_Delay (msec);
 
 } // delay ()
 
@@ -1248,6 +1243,7 @@ void detectgraph (int *graphdriver, int *graphmode)
 
   *graphdriver = SDL;
   *graphmode = SDL_FULLSCREEN;
+  bgi_error_code = grOk;
 
 } // detectgraph ()
 
@@ -1256,6 +1252,8 @@ void detectgraph (int *graphdriver, int *graphmode)
 void drawpoly (int numpoints, int *polypoints)
 {
   // Draws a polygon of numpoints vertices.
+
+  check_initgraph ();
 
   int n;
 
@@ -1293,8 +1291,10 @@ void ellipse (int x, int y, int stangle, int endangle,
 {
   // Draws an elliptical arc centered at (x, y), with axes given by
   // xradius and yradius, traveling from stangle to endangle.
-
   // Bresenham-based if complete
+
+  check_initgraph ();
+
   int angle;
 
   if (0 == xradius && 0 == yradius)
@@ -1420,6 +1420,8 @@ void fillellipse (int cx, int cy, int xradius, int yradius)
   // from "A Fast Bresenham Type Algorithm For Drawing Ellipses"
   // by John Kennedy
 
+  check_initgraph ();
+
   int
     x, y,
     xchange, ychange,
@@ -1516,6 +1518,8 @@ void fillpoly (int numpoints, int *polypoints)
   // Draws a polygon of numpoints vertices and fills it using the
   // current fill color.
 
+  check_initgraph ();
+
   int
     nodes,      // number of nodes
     *nodeX,     // array of nodes
@@ -1592,33 +1596,54 @@ void fillpoly (int numpoints, int *polypoints)
 // -----
 
 // These are setfillpattern-compatible arrays for the tiling patterns.
-// Taken from TurboC, http://www.sandroid.org/TurboC/
 
 static Uint8 fill_patterns[1 + USER_FILL][8] = {
   {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, // EMPTY_FILL
   {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, // SOLID_FILL
   {0xff, 0xff, 0x00, 0x00, 0xff, 0xff, 0x00, 0x00}, // LINE_FILL
   {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80}, // LTSLASH_FILL
-  {0x03, 0x06, 0x0c, 0x18, 0x30, 0x60, 0xc0, 0x81}, // SLASH_FILL
-  {0xc0, 0x60, 0x30, 0x18, 0x0c, 0x06, 0x03, 0x81}, // BKSLASH_FILL
-  {0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01}, // LTBKSLASH_FILL
-  {0x22, 0x22, 0xff, 0x22, 0x22, 0x22, 0xff, 0x22}, // HATCH_FILL
-  {0x81, 0x42, 0x24, 0x18, 0x18, 0x24, 0x42, 0x81}, // XHATCH_FILL
-  {0x11, 0x44, 0x11, 0x44, 0x11, 0x44, 0x11, 0x44}, // INTERLEAVE_FILL
-  {0x10, 0x00, 0x01, 0x00, 0x10, 0x00, 0x01, 0x00}, // WIDE_DOT_FILL
-  {0x11, 0x00, 0x44, 0x00, 0x11, 0x00, 0x44, 0x00}, // CLOSE_DOT_FILL
+  {0xe0, 0xc1, 0x83, 0x07, 0x0e, 0x1c, 0x38, 0x70}, // SLASH_FILL
+  {0xf0, 0x78, 0x3c, 0x1e, 0x0f, 0x87, 0xc3, 0xe1}, // BKSLASH_FILL
+  {0xd2, 0x69, 0xb4, 0x5a, 0x2d, 0x96, 0x4b, 0xa5}, // LTBKSLASH_FILL
+  {0xff, 0x88, 0x88, 0x88, 0xff, 0x88, 0x88, 0x88}, // HATCH_FILL
+  {0x81, 0x81, 0x42, 0x24, 0x18, 0x18, 0x24, 0x42}, // XHATCH_FILL
+  {0xcc, 0x33, 0xcc, 0x33, 0xcc, 0x33, 0xcc, 0x33}, // INTERLEAVE_FILL
+  {0x01, 0x00, 0x10, 0x00, 0x01, 0x00, 0x10, 0x00}, // WIDE_DOT_FILL
+  {0x88, 0x00, 0x22, 0x00, 0x88, 0x00, 0x22, 0x00}, // CLOSE_DOT_FILL
   {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}  // USER_FILL
 };
+
+static Uint8 mirror_bits (Uint8 n)
+{
+  // Used by setfillpattern()
+
+  Uint8
+    i, ret = 0;
+
+  for (i = 0; i < 8; i++)
+    if ((n & (1 << i)) != 0)
+      ret += (1 << (7 - i));
+
+  return ret;
+
+} // mirror_bits ()
+
+// -----
 
 static void ff_putpixel (int x, int y)
 {
   // similar to putpixel (), but uses fill patterns
 
+  Uint8
+    ptn;
+  
   x += vp.left;
   y += vp.top;
+  
+  ptn = mirror_bits (fill_patterns[bgi_fill_style.pattern][y % 8]);
 
   // if the corresponding bit in the pattern is 1
-  if ( (fill_patterns[bgi_fill_style.pattern][y % 8] >> x % 8) & 1)
+  if ( (ptn >> x % 8) & 1)
     putpixel_copy (x, y, bgi_argb_palette[bgi_fill_style.color]);
   else
     putpixel_copy (x, y, bgi_argb_palette[bgi_bg_color]);
@@ -1637,7 +1662,7 @@ typedef struct {
   int y, xl, xr, dy;
 } Segment;
 
-// max depth of stack - was 10000
+// max depth of stack; was 10000
 
 #define STACKSIZE 2000
 
@@ -1742,6 +1767,11 @@ void _floodfill (int x, int y, int border)
 
 void floodfill (int x, int y, int border)
 {
+
+  // Fills an enclosed area with colour.
+
+  check_initgraph ();
+
   unsigned int
     oldcol;
   int
@@ -1802,6 +1832,7 @@ int getactivepage (void)
 {
   // Returns the active page number.
 
+  check_initgraph ();
   return (bgi_ap);
 
 } // getactivepage ()
@@ -1812,6 +1843,8 @@ void getarccoords (struct arccoordstype *arccoords)
 {
   // Gets the coordinates of the last call to arc(), filling the
   // arccoords structure.
+
+  check_initgraph ();
 
   arccoords->x = bgi_last_arc.x;
   arccoords->y = bgi_last_arc.y;
@@ -1829,6 +1862,8 @@ void getaspectratio (int *xasp, int *yasp)
   // Retrieves the current graphics mode's aspect ratio.
   // Irrelevant on modern hardware.
 
+  check_initgraph ();
+
   *xasp = 10000;
   *yasp = 10000;
 
@@ -1840,6 +1875,8 @@ int getbkcolor (void)
 {
   // Returns the current background color.
 
+  check_initgraph ();
+
   return bgi_bg_color;
 
 } // getbkcolor ()
@@ -1850,6 +1887,9 @@ int getbkcolor (void)
 // causes a bug in MSYS2.
 // "getch" is defined as a macro in SDL_bgi.h
 
+// **Note**: this function belongs to "conio.h" and is here
+// only for convenience, as in WinBGIm.
+
 int bgi_getch (void)
 {
   // Waits for a key and returns its ASCII value or code,
@@ -1858,7 +1898,14 @@ int bgi_getch (void)
   int
     key, type;
 
+#if 0
+  // graphics not initialised yet?
+  if (0 == bgi_num_windows)
+    return (getchar ());
+#endif
+
   refresh ();
+
   if (bgi_window_is_hidden)
     return (getchar ());
 
@@ -1901,6 +1948,8 @@ int getcolor (void)
 {
   // Returns the current drawing (foreground) color.
 
+  check_initgraph ();
+
   return bgi_fg_color;
 
 } // getcolor ()
@@ -1910,6 +1959,8 @@ int getcolor (void)
 struct palettetype *getdefaultpalette (void)
 {
   // Returns the default palette
+
+  check_initgraph ();
 
   return &pal;
 
@@ -1922,6 +1973,8 @@ char *getdrivername (void)
   // Returns a pointer to a string containing the name
   // of the current graphics driver.
 
+  check_initgraph ();
+
   return ("SDL_bgi");
 
 } // getdrivername ()
@@ -1933,9 +1986,9 @@ void getfillpattern (char *pattern)
   // Copies the user-defined fill pattern, as set by setfillpattern,
   // into the 8-byte area pointed to by pattern.
 
-  int i;
+  check_initgraph ();
 
-  for (i = 0; i < 8; i++)
+  for (int i = 0; i < 8; i++)
     pattern[i] = (char) fill_patterns[USER_FILL][i];
 
 } // getfillpattern ()
@@ -1946,6 +1999,8 @@ void getfillsettings (struct fillsettingstype *fillinfo)
 {
   // Fills the fillsettingstype structure pointed to by fillinfo
   // with information about the current fill pattern and fill color.
+
+  check_initgraph ();
 
   fillinfo->pattern = bgi_fill_style.pattern;
   fillinfo->color = bgi_fill_color;
@@ -1958,6 +2013,8 @@ int getgraphmode (void)
 {
   // Returns the current graphics mode.
 
+  check_initgraph ();
+
   return bgi_gm;
 
 } // getgraphmode ()
@@ -1968,6 +2025,8 @@ void getimage (int left, int top, int right, int bottom, void *bitmap)
 {
   // Copies a bit image of the specified region into the memory
   // pointed by bitmap.
+
+  check_initgraph ();
 
   Uint32 bitmap_w, bitmap_h, *tmp;
   int i = 2, x, y;
@@ -1995,6 +2054,8 @@ void getlinesettings (struct linesettingstype *lineinfo)
   // Fills the linesettingstype structure pointed by lineinfo with
   // information about the current line style, pattern, and thickness.
 
+  check_initgraph ();
+
   lineinfo->linestyle = bgi_line_style.linestyle;
   lineinfo->upattern = bgi_line_style.upattern;
   lineinfo->thickness = bgi_line_style.thickness;
@@ -2007,12 +2068,28 @@ int getmaxcolor (void)
 {
   // Returns the maximum color value available (MAXCOLORS).
 
+  check_initgraph ();
+
   if (! bgi_argb_mode)
     return MAXCOLORS;
   else
     return PALETTE_SIZE;
 
 } // getmaxcolor ()
+
+// -----
+
+int getmaxheight (void)
+{
+  // Returns the maximum height available for a new window.
+
+  int x, y;
+  
+  getscreensize (&x, &y);
+  
+  return (y);
+  
+} // getmaxheight ()
 
 // -----
 
@@ -2026,9 +2103,26 @@ int getmaxmode (void)
 
 // -----
 
+int getmaxwidth (void)
+{
+  // Returns the maximum width available for a new window.
+
+  int x, y;
+  
+  getscreensize (&x, &y);
+  
+  return (x);
+  
+} // getmaxwidth ()
+
+// -----
+
+
 int getmaxx ()
 {
   // Returns the maximum x screen coordinate.
+
+  check_initgraph ();
 
   return bgi_maxx;
 
@@ -2040,6 +2134,8 @@ int getmaxy ()
 {
   // Returns the maximum y screen coordinate.
 
+  check_initgraph ();
+
   return bgi_maxy;
 
 } // getmaxy ()
@@ -2050,6 +2146,8 @@ char *getmodename (int mode_number)
 {
   // Returns a pointer to a string containing
   // the name of the specified graphics mode.
+
+  check_initgraph ();
 
   switch (mode_number) {
 
@@ -2116,6 +2214,9 @@ void getmoderange (int graphdriver, int *lomode, int *himode)
 {
   // Gets the range of valid graphics modes.
 
+  // CHECK
+  // check_initgraph ();
+
   // return dummy values
   *lomode = 0;
   *himode = 0;
@@ -2129,21 +2230,27 @@ void getpalette (struct palettetype *palette)
   // Fills the palettetype structure pointed by palette with
   // information about the current palette's size and colors.
 
-  int i;
+  check_initgraph ();
 
-  for (i = 0; i <= MAXCOLORS; i++)
-    palette->colors[i] = pal.colors[i];
+  for (int i = 0; i < MAXCOLORS; i++)
+    palette->colors[i] = bgi_argb_palette[i]; // we could use 'pal' instead
+  
+  palette->size = MAXCOLORS + 1;
 
 } // getpalette ()
 
 // -----
 
-int getpalettesize (struct palettetype *palette)
+int getpalettesize ()
 {
-  // Returns the size of the palette.
+  // Returns the size of the palette, depending of bgi_argb_mode.
 
-  // !!! BUG - don't ignore the parameter
-  return BGI_COLORS + TMP_COLORS + PALETTE_SIZE;
+  check_initgraph ();
+
+  if (! bgi_argb_mode)
+    return BGI_COLORS;
+  else
+    return PALETTE_SIZE;
 
 } // getpalettesize ()
 
@@ -2172,6 +2279,8 @@ static int is_in_range (int x, int x1, int x2)
 unsigned int getpixel (int x, int y)
 {
   // Returns the color of the pixel located at (x, y).
+
+  check_initgraph ();
 
   int col;
   Uint32 tmp;
@@ -2205,6 +2314,8 @@ void gettextsettings (struct textsettingstype *texttypeinfo)
   // with information about the current text font, direction, size,
   // and justification.
 
+  check_initgraph ();
+
   texttypeinfo->font      = bgi_txt_style.font;
   texttypeinfo->direction = bgi_txt_style.direction;
   texttypeinfo->charsize  = bgi_txt_style.charsize;
@@ -2219,6 +2330,8 @@ void getviewsettings (struct viewporttype *viewport)
 {
   // Fills the viewporttype structure pointed to by viewport
   // with information about the current viewport.
+
+  check_initgraph ();
 
   viewport->left   = vp.left;
   viewport->top    = vp.top;
@@ -2242,7 +2355,9 @@ int getvisualpage (void)
 
 int getx (void)
 {
-  // Returns the current viewport's x coordinate.
+  // Returns the current x coordinate, relative to the viewport.
+
+  check_initgraph ();
 
   return bgi_cp_x;
 
@@ -2252,7 +2367,9 @@ int getx (void)
 
 int gety (void)
 {
-  // Returns the current viewport's y coordinate.
+  // Returns the current y coordinate, relative to the viewport.
+
+  check_initgraph ();
 
   return bgi_cp_y;
 
@@ -2263,9 +2380,34 @@ int gety (void)
 char *grapherrormsg (int errorcode)
 {
   // Returns a pointer to the error message string associated with
-  // errorcode, returned by graphresult(). Actually, it does nothing.
+  // errorcode, returned by graphresult().
 
-  return NULL;
+  // CHECK
+  // check_initgraph ();
+
+  char *error_msg[] = {
+    "No error",
+    "(BGI) graphics not installed (use initgraph)",
+    "Graphics hardware not detected",
+    "Device driver file not found",
+    "Invalid device driver file",
+    "Not enough memory to load driver",
+    "Out of memory in scan fill",
+    "Out of memory in flood fill",
+    "Font file not found",
+    "Not enough memory to load font",
+    "Invalid graphics mode for selected driver",
+    "Graphics error",
+    "Graphics I/O error",
+    "Invalid font file",
+    "Invalid font number",
+    "Invalid device number",
+    "", // -16, unspecified
+    "", // -17, unspecified
+    "Invalid version number"
+  };
+
+  return error_msg [-bgi_error_code];
 
 } // grapherrormsg ()
 
@@ -2275,8 +2417,7 @@ void graphdefaults (void)
 {
   // Resets all graphics settings to their defaults.
 
-  int i;
-
+  check_initgraph ();
   initpalette ();
 
   // initialise the graphics writing mode
@@ -2288,7 +2429,7 @@ void graphdefaults (void)
 
   vp.right = bgi_maxx;
   vp.bottom = bgi_maxy;
-  vp.clip = SDL_FALSE;
+  vp.clip = SDL_TRUE;
 
   // initialise the CP
   bgi_cp_x = 0;
@@ -2311,9 +2452,15 @@ void graphdefaults (void)
   bgi_line_style.thickness = NORM_WIDTH;
 
   // initialise the palette
-  pal.size = 1 + MAXCOLORS;
-  for (i = 0; i < MAXCOLORS + 1; i++)
-    pal.colors[i] = i;
+  pal.size = BGI_COLORS;
+  if (SDL_FALSE == bgi_use_newpalette)
+    // use the old (ugly) palette
+    for (int i = BLACK; i < WHITE + 1; i++)
+      pal.colors[i] = bgi_orig_palette[i];
+  else
+    // use the new palette
+    for (int i = BLACK; i < WHITE + 1; i++)
+      pal.colors[i] = bgi_std_palette[i];
 
 } // graphdefaults ()
 
@@ -2322,10 +2469,14 @@ void graphdefaults (void)
 int graphresult (void)
 {
   // Returns the error code for the last unsuccessful graphics
-  // operation and resets the error level to grOk. Actually,
-  // it does nothing.
+  // operation and resets the error level to grOk.
+  // Only initwindow() sets this variable.
 
-  return grOk;
+  int
+    tmp = bgi_error_code;
+  bgi_error_code = grOk;
+
+  return tmp;
 
 } // graphresult ()
 
@@ -2335,6 +2486,8 @@ unsigned imagesize (int left, int top, int right, int bottom)
 {
   // Returns the size in bytes of the memory area required to store
   // a bit image.
+
+  check_initgraph ();
 
   return 2 * sizeof(Uint32) + // witdth, height
     (right - left + 1) * (bottom - top + 1) * sizeof (Uint32);
@@ -2349,8 +2502,8 @@ void initgraph (int *graphdriver, int *graphmode, char *pathtodriver)
 
   bgi_fast_mode = SDL_FALSE;   // BGI compatibility
 
-  // the graphics driver parameter is set to SDL; graphics modes
-  // may vary; the path parameter is also ignored.
+  // the graphics driver parameter is always set to SDL; graphics
+  // modes may vary; the path parameter is ignored.
 
   if (NULL != graphmode)
     bgi_gm = *graphmode;
@@ -2423,10 +2576,10 @@ void initgraph (int *graphdriver, int *graphmode, char *pathtodriver)
 
   } // switch
 
-  // old programs take it for granted
-
   cleardevice ();
   refresh_window ();
+
+  bgi_error_code = grOk;
 
 } // initgraph ()
 
@@ -2434,23 +2587,31 @@ void initgraph (int *graphdriver, int *graphmode, char *pathtodriver)
 
 void initpalette (void)
 {
-  int
-    i, newpalette = SDL_TRUE;
+  // Initialises the default palette
+
+  check_initgraph ();
 
   char
     *res = getenv ("SDL_BGI_PALETTE");
 
   if (NULL != res &&
       (0 == strcmp ("BGI", res)) )
-    newpalette = SDL_FALSE;
+    bgi_use_newpalette = SDL_FALSE;
 
-  if (SDL_FALSE == newpalette)
+  bgi_argb_palette = calloc (BGI_COLORS + TMP_COLORS + PALETTE_SIZE,
+			     sizeof (Uint32));
+  if (NULL == bgi_argb_palette) {
+    fprintf (stderr, "Could not allocate palette, aborting.\n");
+    exit (1);
+  }
+  
+  if (SDL_FALSE == bgi_use_newpalette)
     // use the old (ugly) palette
-    for (i = BLACK; i < WHITE + 1; i++)
+    for (int i = BLACK; i < WHITE + 1; i++)
       bgi_argb_palette[i] = bgi_orig_palette[i];
   else
     // use the new palette
-    for (i = BLACK; i < WHITE + 1; i++)
+    for (int i = BLACK; i < WHITE + 1; i++)
       bgi_argb_palette[i] = bgi_std_palette[i];
 
 } // initpalette ()
@@ -2461,6 +2622,9 @@ int kbhit (void)
 {
   // Returns 1 when a key is pressed, or QUIT
   // if the user asked to close the window
+
+  // CHECK
+  // check_initgraph ();
 
   SDL_Event event;
   SDL_Keycode key;
@@ -2764,7 +2928,11 @@ void line (int x1, int y1, int x2, int y2)
 {
   // Draws a line between two specified points.
 
+  check_initgraph ();
+
   int oct;
+
+  check_initgraph ();
 
   // viewport
   x1 += vp.left;
@@ -2868,7 +3036,7 @@ void line (int x1, int y1, int x2, int y2)
 
 // -----
 
-void line_fast (int x1, int y1, int x2, int y2)
+static void line_fast (int x1, int y1, int x2, int y2)
 {
   // Draws a line in fast mode
 
@@ -2888,6 +3056,8 @@ void linerel (int dx, int dy)
   // Draws a line from the CP to a point that is (dx,dy)
   // pixels from the CP.
 
+  check_initgraph ();
+
   line (bgi_cp_x, bgi_cp_y, bgi_cp_x + dx, bgi_cp_y + dy);
   bgi_cp_x += dx;
   bgi_cp_y += dy;
@@ -2896,7 +3066,7 @@ void linerel (int dx, int dy)
 
 // -----
 
-void linerel_fast (int dx, int dy)
+static void linerel_fast (int dx, int dy)
 {
   // Fast version of linerel().
 
@@ -2915,6 +3085,8 @@ void lineto (int x, int y)
 {
   // Draws a line from the CP to (x, y), then moves the CP to (dx, dy).
 
+  check_initgraph ();
+
   line (bgi_cp_x, bgi_cp_y, x, y);
   bgi_cp_x = x;
   bgi_cp_y = y;
@@ -2923,7 +3095,7 @@ void lineto (int x, int y)
 
 // -----
 
-void lineto_fast  (int x, int y)
+static void lineto_fast  (int x, int y)
 {
   // Fast version of lineto().
 
@@ -2944,6 +3116,8 @@ void moveto (int x, int y)
 {
   // Moves the CP to the position (x, y), relative to the viewport.
 
+  check_initgraph ();
+
   bgi_cp_x = x;
   bgi_cp_y = y;
 
@@ -2954,6 +3128,8 @@ void moveto (int x, int y)
 void moverel (int dx, int dy)
 {
   // Moves the CP by (dx, dy) pixels.
+
+  check_initgraph ();
 
   bgi_cp_x += dx;
   bgi_cp_y += dy;
@@ -3033,9 +3209,9 @@ static void drawchar_bitmap (unsigned char ch)
 
 // -----
 
-void drawchar_hershey (int ch)
+static void drawchar_internal (int ch)
 {
-  // Draws an character in Hershey font;
+  // Draws an character in internal font;
   // used by outtextxy ()
 
   int
@@ -3043,51 +3219,62 @@ void drawchar_hershey (int ch)
     tmpx, tmpy,
     num;
 
+  // TODO: char -> short int?
+  
   const char
     *glyph;
 
+  // fix signed chars
+  if (ch < 0)
+    ch += 256;
   ch -= 32; // glyph 0 = ASCII 32
-  glyph = bgi_hershey_font[ch];
-  num = bgi_hershey_font_size[ch];
+
+  glyph = bgi_internal_font[ch];
+  num = bgi_internal_font_size[ch];
   x = tmpx = bgi_cp_x;
   y = tmpy = bgi_cp_y;
 
-  if (ch > 0 && ch < 128) {
-    
+  // internal fonts have 223 glyphs
+  if (ch > 0 && ch < 224) {
+
     for (int i = 0; i < num - 2; i += 4) {
-      
+
       // compatibility with Turbo C requires a vertical offset
-      moveto (x, y + bgi_hershey_offset);
+      moveto (x, y + bgi_internal_offset);
 
       if (HORIZ_DIR == bgi_txt_style.direction) {
 	moverel (bgi_font_mag_x * glyph[i],
 		 bgi_font_mag_y * glyph[i + 1]);
-	linerel_fast (bgi_font_mag_x * (glyph[i + 2] - glyph[i]),
-		      bgi_font_mag_y * (glyph[i + 3] - glyph[i + 1]));
+	linerel_fast (bgi_font_mag_x *
+		      (glyph[i + 2] - glyph[i]),
+		      bgi_font_mag_y *
+		      (glyph[i + 3] - glyph[i + 1]));
       }
       else { // VERT_DIR
-	moverel ((bgi_font_mag_y * glyph[i + 1]),
+	moverel (bgi_font_mag_y * glyph[i + 1],
 		 - bgi_font_mag_x * glyph[i]);
-	linerel_fast ((bgi_font_mag_y * (glyph[i + 3] - glyph[i + 1])),
-		      - bgi_font_mag_x * (glyph[i + 2] - glyph[i]));
+	linerel_fast (bgi_font_mag_y *
+		      (glyph[i + 3] - glyph[i + 1]),
+		      - bgi_font_mag_x *
+		      (glyph[i + 2] - glyph[i]));
       }
-    
+
     } // for
 
   } // if
 
   if (HORIZ_DIR == bgi_txt_style.direction)
-    tmpx += bgi_font_mag_x * bgi_hershey_font_width[ch];
+    tmpx += bgi_font_mag_x * bgi_internal_font_width[ch];
   else
-    tmpy -= bgi_font_mag_x * bgi_hershey_font_width[ch];
+    tmpy -= bgi_font_mag_x * bgi_internal_font_width[ch];
 
   moveto (tmpx, tmpy);
 
-} // drawchar_hershey ()
+} // drawchar_internal ()
 
 // -----
 
-void drawchar_chr (int ch)
+static void drawchar_chr (int ch)
 {
   // Draws a character in .CHR font;
   // used by outtextxy ()
@@ -3100,7 +3287,7 @@ void drawchar_chr (int ch)
 
   if (ch < 0)
     // We have to fix some signed chars...
-    ch = 256+ch;
+    ch = 256 + ch;
 
   // printf("width: %d\n", chr_font->widths[ch]);
 
@@ -3127,14 +3314,37 @@ void drawchar_chr (int ch)
 
 // -----
 
+int installuserfont (char *name)
+{
+  // Loads a .CHR font from disk.
+  // Undocumented feature: if the font file is not found, this
+  // function returns LAST_SPEC_FONT.
+
+  if (chr_next_font == MAX_FONTS)
+    return grError;
+
+  chr_fonts[chr_next_font] = load_font (name);
+
+  if (!chr_fonts[chr_next_font])
+    return LAST_SPEC_FONT;
+  else {
+    chr_next_font++;
+    return chr_next_font - 1;
+  }
+
+} // installuserfont ()
+
+// -----
+
 void outtext (char *textstring)
 {
   // Outputs textstring at the CP.
 
+  check_initgraph ();
+
   int
     tmp_x = bgi_cp_x;
 
-  // where is the CP after outtextxy ()? Undocumented.
   outtextxy (bgi_cp_x, bgi_cp_y, textstring);
 
   // the CP has been advanced by drawchar_*()
@@ -3150,9 +3360,15 @@ void outtext (char *textstring)
 void outtextxy (int x, int y, char *textstring)
 {
   // Outputs textstring at (x, y).
+  // What happens to the CP afterwards? Undocumented feature!
+
+  check_initgraph ();
 
   int
-    tmp,
+    tmp_tck, // line thickness
+    tmp_stl, // line style
+    tmp_x = bgi_cp_x,
+    tmp_y = bgi_cp_y,
     x1 = 0,
     y1 = 0,
     tw,
@@ -3163,20 +3379,20 @@ void outtextxy (int x, int y, char *textstring)
     return;
 
   th = textheight (textstring);
-
+  
   if (HORIZ_DIR == bgi_txt_style.direction) {
 
     if (LEFT_TEXT == bgi_txt_style.horiz)
       x1 = x;
 
     if (CENTER_TEXT == bgi_txt_style.horiz)
-      x1 = x - tw / 2 + 1;
+      x1 = x - round (tw / 2.0) + 1;
 
     if (RIGHT_TEXT == bgi_txt_style.horiz)
       x1 = x - tw;
 
     if (CENTER_TEXT == bgi_txt_style.vert)
-      y1 = y - th / 2 + 1;
+      y1 = y - th / 2;
 
     if (TOP_TEXT == bgi_txt_style.vert)
       y1 = y;
@@ -3191,13 +3407,13 @@ void outtextxy (int x, int y, char *textstring)
       y1 = y;
 
     if (CENTER_TEXT == bgi_txt_style.horiz)
-      y1 = y + tw / 2 + 1;
+      y1 = y + round (tw / 2.0) + 1;
 
     if (RIGHT_TEXT == bgi_txt_style.horiz)
       y1 = y + tw;
 
     if (CENTER_TEXT == bgi_txt_style.vert)
-      x1 = x - th / 2 + 1;
+      x1 = x - th / 2;
 
     if (TOP_TEXT == bgi_txt_style.vert)
       x1 = x;
@@ -3210,8 +3426,10 @@ void outtextxy (int x, int y, char *textstring)
   moveto (x1, y1);
 
   // if THICK_WIDTH, fallback to NORM_WIDTH
-  tmp = bgi_line_style.thickness;
+  tmp_tck = bgi_line_style.thickness;
+  tmp_stl = bgi_line_style.linestyle;
   bgi_line_style.thickness = NORM_WIDTH;
+  bgi_line_style.linestyle = SOLID_LINE;
 
   for (int i = 0; i < strlen (textstring); i++) {
     if (chr_font)
@@ -3219,11 +3437,15 @@ void outtextxy (int x, int y, char *textstring)
     else if (DEFAULT_FONT == bgi_font)
       drawchar_bitmap (textstring[i]);
     else
-      drawchar_hershey (textstring[i]);
+      drawchar_internal (textstring[i]);
   }
 
-  bgi_line_style.thickness = tmp;
-
+  // restore status
+  bgi_line_style.thickness = tmp_tck;
+  bgi_line_style.linestyle = tmp_stl;
+  bgi_cp_x = tmp_x;
+  bgi_cp_y = tmp_y;
+  
   update ();
 
 } // outtextxy ()
@@ -3235,7 +3457,10 @@ void pieslice (int x, int y, int stangle, int endangle, int radius)
   // Draws and fills a pie slice centered at (x, y), with a radius
   // given by radius, traveling from stangle to endangle.
 
-  // quick and dirty for now, Bresenham-based later.
+  // quick and dirty for now, Bresenham-based later (maybe)
+
+  check_initgraph ();
+
   int angle;
 
   if (0 == radius || stangle == endangle)
@@ -3263,6 +3488,7 @@ void pieslice (int x, int y, int stangle, int endangle, int radius)
   line_fast (x, y, bgi_last_arc.xend, bgi_last_arc.yend);
 
   angle = (stangle + endangle) / 2;
+  // !!! FIXME: what if we're trying to fill an already filled pieslice?
   floodfill (x + (radius * cos (angle * PI_CONV)) / 2,
              y - (radius * sin (angle * PI_CONV)) / 2,
              bgi_fg_color);
@@ -3276,6 +3502,8 @@ void pieslice (int x, int y, int stangle, int endangle, int radius)
 void putimage (int left, int top, void *bitmap, int op)
 {
   // Puts the bit image pointed to by bitmap onto the screen.
+
+  check_initgraph ();
 
   Uint32
     bitmap_w, bitmap_h, *tmp;
@@ -3327,7 +3555,7 @@ void putimage (int left, int top, void *bitmap, int op)
 
 // -----
 
-void putpixel_copy (int x, int y, Uint32 pixel)
+static void putpixel_copy (int x, int y, Uint32 pixel)
 {
   // plain putpixel - no logical operations
 
@@ -3350,7 +3578,7 @@ void putpixel_copy (int x, int y, Uint32 pixel)
 
 // -----
 
-void putpixel_xor (int x, int y, Uint32 pixel)
+static void putpixel_xor (int x, int y, Uint32 pixel)
 {
   // XOR'ed putpixel
 
@@ -3369,7 +3597,7 @@ void putpixel_xor (int x, int y, Uint32 pixel)
 
 // -----
 
-void putpixel_and (int x, int y, Uint32 pixel)
+static void putpixel_and (int x, int y, Uint32 pixel)
 {
   // AND-ed putpixel
 
@@ -3388,7 +3616,7 @@ void putpixel_and (int x, int y, Uint32 pixel)
 
 // -----
 
-void putpixel_or (int x, int y, Uint32 pixel)
+static void putpixel_or (int x, int y, Uint32 pixel)
 {
   // OR-ed putpixel
 
@@ -3407,7 +3635,7 @@ void putpixel_or (int x, int y, Uint32 pixel)
 
 // -----
 
-void putpixel_not (int x, int y, Uint32 pixel)
+static void putpixel_not (int x, int y, Uint32 pixel)
 {
   // NOT-ed putpixel
 
@@ -3430,6 +3658,8 @@ void putpixel (int x, int y, int color)
 {
   // Plots a point at (x,y) in the color defined by 'color'.
 
+  check_initgraph ();
+
   int tmpcolor;
 
   x += vp.left;
@@ -3440,11 +3670,10 @@ void putpixel (int x, int y, int color)
     if (x < vp.left || x > vp.right || y < vp.top || y > vp.bottom)
       return;
 
-   // COLOR () set up the BGI_COLORS + 1 color
+  // COLOR () set the ARGB_FG_COL colour
   if (-1 == color) {
-    bgi_argb_mode = SDL_TRUE;
-    tmpcolor = TMP_FG_COL;
-    bgi_argb_palette[tmpcolor] = bgi_tmp_color_argb;
+    tmpcolor = ARGB_FG_COL;
+    bgi_argb_palette[tmpcolor] = bgi_argb_palette[ARGB_TMP_COL];
   }
   else {
     bgi_argb_mode = SDL_FALSE;
@@ -3485,6 +3714,8 @@ void rectangle (int x1, int y1, int x2, int y2)
 {
   // Draws a rectangle delimited by (left,top) and (right,bottom).
 
+  check_initgraph ();
+
   line_fast (x1, y1, x2, y1);
   line_fast (x2, y1, x2, y2);
   line_fast (x2, y2, x1, y2);
@@ -3496,7 +3727,7 @@ void rectangle (int x1, int y1, int x2, int y2)
 
 // -----
 
-void refresh_window (void)
+static void refresh_window (void)
 {
   // Updates the screen.
 
@@ -3509,6 +3740,8 @@ void refresh_window (void)
 void restorecrtmode (void)
 {
   // Hides the graphics window.
+
+  check_initgraph ();
 
   SDL_HideWindow (bgi_win[bgi_current_window]);
   bgi_window_is_hidden = SDL_TRUE;
@@ -3524,7 +3757,10 @@ void sector (int x, int y, int stangle, int endangle,
   // horizontal and vertical radii given by xradius and yradius,
   // traveling from stangle to endangle.
 
-  // quick and dirty for now, Bresenham-based later.
+  // quick and dirty for now, Bresenham-based later (maybe)
+
+  check_initgraph ();
+
   int angle, tmpcolor;
 
   if (0 == xradius && 0 == yradius)
@@ -3553,6 +3789,7 @@ void sector (int x, int y, int stangle, int endangle,
   setcolor (bgi_fill_style.color);
   angle = (stangle + endangle) / 2;
   // find a point within the sector
+  // !!! FIXME: what if we're trying to fill an already filled sector?
   floodfill (x + (xradius * cos (angle * PI_CONV)) / 2,
              y - (yradius * sin (angle * PI_CONV)) / 2,
              tmpcolor);
@@ -3566,6 +3803,8 @@ void sector (int x, int y, int stangle, int endangle,
 void setactivepage (int page)
 {
   // Makes 'page' the active page for all subsequent graphics output.
+
+  check_initgraph ();
 
   if (! bgi_fast_mode)
     bgi_blendmode = SDL_BLENDMODE_NONE; // like in Turbo C
@@ -3583,11 +3822,10 @@ void setallpalette (struct palettetype *palette)
 {
   // Sets the current palette to the values given in palette.
 
-  int i;
+  check_initgraph ();
 
-  for (i = 0; i <= MAXCOLORS; i++)
-    if (palette->colors[i] != -1)
-      setpalette (i, palette->colors[i]);
+  for (int i = 0; i < palette->size; i++)
+    bgi_argb_palette[i] = pal.colors[i] = palette->colors[i];
 
 } // setallpalette ()
 
@@ -3596,8 +3834,8 @@ void setallpalette (struct palettetype *palette)
 void setaspectratio (int xasp, int yasp)
 {
   // Changes the default aspect ratio of the graphics.
+  // Actually, it does nothing; it makes no sense on modern hardware.
 
-  // Actually, it does nothing.
   return;
 
 } // setaspectratio ()
@@ -3608,16 +3846,20 @@ void setbkcolor (int col)
 {
   // Sets the current background color using the default palette.
 
-  // COLOR () set up the BGI_COLORS + 2 color
+  check_initgraph ();
+
+  // COLOR () set the ARGB_BG_COL colour
   if (-1 == col) {
-    bgi_argb_mode = SDL_TRUE;
-    bgi_bg_color = BGI_COLORS + 2;
-    bgi_argb_palette[bgi_bg_color] = bgi_tmp_color_argb;
+    bgi_bg_color = ARGB_BG_COL;
+    bgi_argb_palette[ARGB_BG_COL] = bgi_argb_palette[ARGB_TMP_COL];
   }
   else {
     bgi_argb_mode = SDL_FALSE;
     bgi_bg_color = col;
   }
+  
+  // this was undocumented!
+  clearviewport ();
 
 } // setbkcolor ()
 
@@ -3627,11 +3869,12 @@ void setcolor (int col)
 {
   // Sets the current drawing color using the default palette.
 
-  // COLOR () set up the BGI_COLORS + 1 color
+  check_initgraph ();
+
+  // COLOR () set the ARGB_FG_COL colour
   if (-1 == col) {
-    bgi_argb_mode = SDL_TRUE;
-    bgi_fg_color = TMP_FG_COL;
-    bgi_argb_palette[bgi_fg_color] = bgi_tmp_color_argb;
+    bgi_fg_color = ARGB_FG_COL;
+    bgi_argb_palette[ARGB_FG_COL] = bgi_argb_palette[ARGB_TMP_COL];
   }
   else {
     bgi_argb_mode = SDL_FALSE;
@@ -3642,37 +3885,19 @@ void setcolor (int col)
 
 // -----
 
-static Uint8 mirror_bits (Uint8 n)
-{
-  // Used by setfillpattern()
-
-  Uint8
-    ret = 0;
-
-  for (Uint8 i = 0; i < 8; i++)
-    if ((n & (1 << i)) != 0)
-      ret += (1 << (7 - i));
-
-  return ret;
-
-} // mirror_bits ()
-
-// -----
-
 void setfillpattern (char *upattern, int color)
 {
   // Sets a user-defined fill pattern.
 
-  int i;
+  check_initgraph ();
 
-  for (i = 0; i < 8; i++)
-    fill_patterns[USER_FILL][i] = mirror_bits ((Uint8) *upattern++);
+  for (int i = 0; i < 8; i++)
+    fill_patterns[USER_FILL][i] = (Uint8) *upattern++;
 
-  // COLOR () set up the BGI_COLORS + 3 color
+  // COLOR () set the ARGB_FILL_COL colour
   if (-1 == color) {
-    bgi_argb_mode = SDL_TRUE;
-    bgi_fill_color = BGI_COLORS + 3;
-    bgi_argb_palette[bgi_fill_color] = bgi_tmp_color_argb;
+    bgi_fill_color = ARGB_FILL_COL;
+    bgi_argb_palette[bgi_fill_color] = bgi_argb_palette[ARGB_TMP_COL];
     bgi_fill_style.color = bgi_fill_color;
   }
   else {
@@ -3690,13 +3915,14 @@ void setfillstyle (int pattern, int color)
 {
   // Sets the fill pattern and fill color.
 
+  check_initgraph ();
+
   bgi_fill_style.pattern = pattern;
 
-  // COLOR () set up the temporary fill colour
+  // COLOR () set the ARGB_FILL_COL colour
   if (-1 == color) {
-    bgi_argb_mode = SDL_TRUE;
-    bgi_fill_color = TMP_FILL_COL - 1;
-    bgi_argb_palette[bgi_fill_color] = bgi_tmp_color_argb;
+    bgi_fill_color = ARGB_FILL_COL;
+    bgi_argb_palette[bgi_fill_color] = bgi_argb_palette[ARGB_TMP_COL];
     bgi_fill_style.color = bgi_fill_color;
   }
   else {
@@ -3712,8 +3938,11 @@ void setgraphmode (int mode)
 {
   // Shows the window that was hidden by restorecrtmode ().
 
+  check_initgraph ();
+  
   SDL_ShowWindow (bgi_win[bgi_current_window]);
   bgi_window_is_hidden = SDL_FALSE;
+  cleardevice ();
 
 } // setgraphmode ()
 
@@ -3723,6 +3952,8 @@ void setlinestyle (int linestyle, unsigned upattern, int thickness)
 {
   // Sets the line width and style for all lines drawn by line(),
   // lineto(), rectangle(), drawpoly(), etc.
+
+  check_initgraph ();
 
   bgi_line_style.linestyle = linestyle;
   bgi_line_patterns[USERBIT_LINE] = bgi_line_style.upattern = upattern;
@@ -3734,15 +3965,23 @@ void setlinestyle (int linestyle, unsigned upattern, int thickness)
 
 void setpalette (int colornum, int color)
 {
-  // Changes the standard palette colornum to color.
+  // Changes the standard palette entry 'colornum' to 'color'.
+
+  check_initgraph ();
 
   if (colornum < BLACK || colornum > WHITE)
     return;
 
   if (-1 == color) // user called COLOR()
-    bgi_argb_palette[colornum] = bgi_tmp_color_argb;
-  else
-    bgi_argb_palette[colornum] = bgi_std_palette[color];
+    bgi_argb_palette[colornum] = bgi_argb_palette[ARGB_TMP_COL];
+  else {
+    if (SDL_FALSE == bgi_use_newpalette)
+      // use the old (ugly) palette
+      bgi_argb_palette[colornum] = bgi_orig_palette[color];
+    else
+      // use the new palette
+      bgi_argb_palette[colornum] = bgi_std_palette[color];
+  }
 
 } // setpalette ()
 
@@ -3751,6 +3990,8 @@ void setpalette (int colornum, int color)
 void settextjustify (int horiz, int vert)
 {
   // Sets text justification.
+
+  check_initgraph ();
 
   if (HORIZ_DIR == bgi_txt_style.direction) {
     bgi_txt_style.horiz = horiz;
@@ -3770,131 +4011,128 @@ void settextstyle (int font, int direction, int charsize)
   // Sets the text font, the direction of the text
   // (HORIZ DIR, VERT DIR), and the size of characters.
 
+  check_initgraph ();
+
   bgi_font = font;
   chr_font = chr_fonts[font];
-
-  // default fonts: try to load a .CHR font from disk; if missing,
-  // use the corresponding Hershey font.
 
   switch (font) {
 
   case TRIPLEX_FONT:
-    // printf("Trying to load triplex font...\n");
-    if (!chr_font)
-      chr_font = chr_fonts[font] = load_font("TRIP.CHR");
-    // printf("Result: %s\n", chr_font ? "Success" : "Failed");
-    bgi_hershey_font = &timesrb[0];
-    bgi_hershey_font_size = &timesrb_size[0];
-    bgi_hershey_font_width = &timesrb_width[0];
-    bgi_hershey_font_height = timesrb_height;
-    bgi_hershey_offset = 3;
+    bgi_internal_font = &trip[0];
+    bgi_internal_font_size = &trip_size[0];
+    bgi_internal_font_width = &trip_width[0];
+    bgi_internal_font_height = trip_height;
+    bgi_internal_offset = 0;
+    bgi_internal_font_desc = -trip_desc_height; // was negative
     break;
 
   case SMALL_FONT:
-    if (!chr_font)
-      chr_font = chr_fonts[font] = load_font("LITT.CHR");
-    bgi_hershey_font = &small[0];
-    bgi_hershey_font_size = &small_size[0];
-    bgi_hershey_font_width = &small_width[0];
-    bgi_hershey_font_height = small_height;
-    bgi_hershey_offset = 2;
+    bgi_internal_font = &litt[0];
+    bgi_internal_font_size = &litt_size[0];
+    bgi_internal_font_width = &litt_width[0];
+    bgi_internal_font_height = litt_height;
+    bgi_internal_offset = 0;
+    bgi_internal_font_desc = -litt_desc_height;
     break;
 
   case SANS_SERIF_FONT:
-    if (!chr_font)
-      chr_font = chr_fonts[font] = load_font("SANS.CHR");
-    bgi_hershey_font = &futuram[0];
-    bgi_hershey_font_size = &futuram_size[0];
-    bgi_hershey_font_width = &futuram_width[0];
-    bgi_hershey_font_height = futuram_height;
-    bgi_hershey_offset = 3;
+    bgi_internal_font = &sans[0];
+    bgi_internal_font_size = &sans_size[0];
+    bgi_internal_font_width = &sans_width[0];
+    bgi_internal_font_height = sans_height;
+    bgi_internal_offset = 0;
+    bgi_internal_font_desc = -sans_desc_height;
     break;
 
   case GOTHIC_FONT:
-    if (!chr_font)
-      chr_font = chr_fonts[font] = load_font("GOTH.CHR");
     bgi_font = GOTHIC_FONT;
-    bgi_hershey_font = &gothgbt[0];
-    bgi_hershey_font_size = &gothgbt_size[0];
-    bgi_hershey_font_width = &gothgbt_width[0];
-    bgi_hershey_font_height = gothgbt_height;
-    bgi_hershey_offset = 3;
+    bgi_internal_font = &goth[0];
+    bgi_internal_font_size = &goth_size[0];
+    bgi_internal_font_width = &goth_width[0];
+    bgi_internal_font_height = goth_height;
+    bgi_internal_offset = 0;
+    bgi_internal_font_desc = -goth_desc_height;
     break;
 
   case SCRIPT_FONT:
-    if (!chr_font)
-      chr_font = chr_fonts[font] = load_font("SCRI.CHR");
     bgi_font = SCRIPT_FONT;
-    bgi_hershey_font = &cursive[0];
-    bgi_hershey_font_size = &cursive_size[0];
-    bgi_hershey_font_width = &cursive_width[0];
-    bgi_hershey_font_height = cursive_height;
-    bgi_hershey_offset = 3;
+    bgi_internal_font = &scri[0];
+    bgi_internal_font_size = &scri_size[0];
+    bgi_internal_font_width = &scri_width[0];
+    bgi_internal_font_height = scri_height;
+    bgi_internal_offset = 0;
+    bgi_internal_font_desc = -goth_desc_height;
     break;
 
   case SIMPLEX_FONT:
-    if (!chr_font)
-      chr_font = chr_fonts[font] = load_font("SIMP.CHR");
     bgi_font = SIMPLEX_FONT;
-    bgi_hershey_font = &futural[0];
-    bgi_hershey_font_size = &futural_size[0];
-    bgi_hershey_font_width = &futural_width[0];
-    bgi_hershey_font_height = futural_height;
-    bgi_hershey_offset = 3;
+    bgi_internal_font = &simp[0];
+    bgi_internal_font_size = &simp_size[0];
+    bgi_internal_font_width = &simp_width[0];
+    bgi_internal_font_height = simp_height;
+    bgi_internal_offset = 0;
+    bgi_internal_font_desc = -simp_desc_height;
     break;
 
   case TRIPLEX_SCR_FONT:
-    if (!chr_font)
-      chr_font = chr_fonts[font] = load_font("TSCR.CHR");
     bgi_font = TRIPLEX_SCR_FONT;
-    bgi_hershey_font = &rowmant[0];
-    bgi_hershey_font_size = &rowmant_size[0];
-    bgi_hershey_font_width = &rowmant_width[0];
-    bgi_hershey_font_height = rowmant_height;
-    bgi_hershey_offset = 3;
+    bgi_internal_font = &tscr[0];
+    bgi_internal_font_size = &tscr_size[0];
+    bgi_internal_font_width = &tscr_width[0];
+    bgi_internal_font_height = tscr_height;
+    bgi_internal_offset = 0;
+    bgi_internal_font_desc = -tscr_desc_height;
     break;
 
   case COMPLEX_FONT:
-    if (!chr_font)
-      chr_font = chr_fonts[font] = load_font("LCOM.CHR");
     bgi_font = COMPLEX_FONT;
-    bgi_hershey_font = &timesr[0];
-    bgi_hershey_font_size = &timesr_size[0];
-    bgi_hershey_font_width = &timesr_width[0];
-    bgi_hershey_font_height = timesr_height;
-    bgi_hershey_offset = 3;
+    bgi_internal_font = &lcom[0];
+    bgi_internal_font_size = &lcom_size[0];
+    bgi_internal_font_width = &lcom_width[0];
+    bgi_internal_font_height = lcom_height;
+    bgi_internal_offset = 0;
+    bgi_internal_font_desc = -lcom_desc_height;
     break;
 
   case EUROPEAN_FONT:
-    // default to TRIPLEX_FONT if no .CHR available
-    if (!chr_font)
-      chr_font = chr_fonts[font] = load_font("EURO.CHR");
-    bgi_hershey_font = &timesrb[0];
-    bgi_hershey_font_size = &timesrb_size[0];
-    bgi_hershey_font_width = &timesrb_width[0];
-    bgi_hershey_font_height = timesrb_height;
-    bgi_hershey_offset = 3;
+    bgi_internal_font = &euro[0];
+    bgi_internal_font_size = &euro_size[0];
+    bgi_internal_font_width = &euro_width[0];
+    bgi_internal_font_height = euro_height;
+    bgi_internal_offset = 0;
+    bgi_internal_font_desc = -euro_desc_height;
     break;
 
   case BOLD_FONT:
-    // default to TRIPLEX_FONT if no .CHR available
-    if (!chr_font)
-      chr_font = chr_fonts[font] = load_font("BOLD.CHR");
-    bgi_hershey_font = &timesrb[0];
-    bgi_hershey_font_size = &timesrb_size[0];
-    bgi_hershey_font_width = &timesrb_width[0];
-    bgi_hershey_font_height = timesrb_height;
-    bgi_hershey_offset = 3;
+    bgi_internal_font = &bold[0];
+    bgi_internal_font_size = &bold_size[0];
+    bgi_internal_font_width = &bold_width[0];
+    bgi_internal_font_height = bold_height;
+    bgi_internal_offset = 0;
+    bgi_internal_font_desc = -bold_desc_height;
     break;
 
   case DEFAULT_FONT:
   default:
+      bgi_internal_offset = 0;
     break;
 
   } // switch
 
-  if (font >= LAST_SPEC_FONT) // use a loaded .CHR font
+  // undocumented feature; please see installuserfont()
+  if (LAST_SPEC_FONT == font && NULL == chr_font)
+    bgi_font = DEFAULT_FONT;
+  
+  if (font > LAST_SPEC_FONT) { // use a loaded .CHR font
     chr_font = chr_fonts[font];
+    if (NULL == chr_font) {
+      bgi_error_code = grInvalidFontNum;
+      fprintf (stderr, "BGI error: %s\n", 
+	       grapherrormsg (bgi_error_code));
+      exit (1);
+    }
+  }
 
   if (charsize > 10)
     charsize = 10; // as per specs
@@ -3919,6 +4157,7 @@ void settextstyle (int font, int direction, int charsize)
     bgi_txt_style.direction = HORIZ_DIR;
 
   bgi_txt_style.charsize = charsize;
+  bgi_internal_offset *= charsize;
 
 } // settextstyle ()
 
@@ -3928,13 +4167,22 @@ void setusercharsize (int multx, int divx, int multy, int divy)
 {
   // Changes the font width and height.
 
+  check_initgraph ();
+
   bgi_user_size_x = (float)multx / (float)divx;
   bgi_user_size_y = (float)multy / (float)divy;
 
-  if (USER_CHAR_SIZE == bgi_txt_style.charsize) {
+  // According to the docs:
+  // "When charsize equals 0, the output functions outtext and 
+  // outtextxy magnify the stroked font text using either the default
+  // character magnification factor (4) or the user-defined character
+  // size given by setusercharsize."
+  // But Turbo C++ 1.01 always uses magnification.
+  // 
+  // if (USER_CHAR_SIZE == bgi_txt_style.charsize) {
     bgi_font_mag_x = bgi_user_size_x;
     bgi_font_mag_y = bgi_user_size_y;
-  }
+  // }
 
 } // setusercharsize ()
 
@@ -3943,6 +4191,8 @@ void setusercharsize (int multx, int divx, int multy, int divy)
 void setviewport (int left, int top, int right, int bottom, int clip)
 {
   // Sets the current viewport for graphics output.
+
+  check_initgraph ();
 
   if (left < 0 || right > bgi_maxx || top < 0 || bottom > bgi_maxy)
     return;
@@ -3964,6 +4214,8 @@ void setvisualpage (int page)
 {
   // Sets the visual graphics page number.
 
+  check_initgraph ();
+
   if (page > -1 && page < bgi_np + 1) {
     bgi_vp = page;
     bgi_visualpage[bgi_current_window] = bgi_vpage[bgi_vp]->pixels;
@@ -3980,6 +4232,8 @@ void setwritemode (int mode)
   // Sets the writing mode for line drawing. 'mode' can be COPY PUT,
   // XOR PUT, OR PUT, AND PUT, and NOT PUT.
 
+  check_initgraph ();
+
   bgi_writemode = mode;
 
 } // setwritemode ()
@@ -3990,13 +4244,17 @@ int textheight (char *textstring)
 {
   // Returns the height in pixels of a string.
 
+  check_initgraph ();
+
   int
     height;
 
+  // FIXME: take care of loaded fonts.
+  
   if (DEFAULT_FONT == bgi_font)
     height = bgi_font_mag_y * bgi_bitmap_font_height;
   else
-    height = bgi_font_mag_y * bgi_hershey_font_height;
+    height = bgi_font_mag_y * bgi_internal_font_height;
 
   return height;
 
@@ -4007,6 +4265,8 @@ int textheight (char *textstring)
 int textwidth (char *textstring)
 {
   // Returns the width in pixels of a string.
+
+  check_initgraph ();
 
   int ch;
   float width = 0.0;
@@ -4028,10 +4288,12 @@ int textwidth (char *textstring)
 	 */
       } // for
     } // if
-  else
+  else // internal font
     for (int i = 0; textstring[i] != '\0'; i++) {
       ch = textstring[i] - 32;
-      width += bgi_font_mag_x * bgi_hershey_font_width[ch];
+      if (ch < 0)
+	ch += 256;
+      width += bgi_font_mag_x * bgi_internal_font_width[ch];
     }
 
   return (int)width;
@@ -4044,7 +4306,8 @@ int textwidth (char *textstring)
 
 int ALPHA_VALUE (int color)
 {
-  // Returns the alpha (transparency) component of an ARGB color.
+  // Returns the alpha (transparency) component of 'color' in the
+  // ARGB palette.
 
   return ((bgi_argb_palette[BGI_COLORS + TMP_COLORS + color] >> 24) & 0xFF);
 
@@ -4054,7 +4317,7 @@ int ALPHA_VALUE (int color)
 
 int BLUE_VALUE (int color)
 {
-  // Returns the blue component 'color' in the extended palette
+  // Returns the blue component of 'color' in the ARGB palette
 
   return (bgi_argb_palette[BGI_COLORS + TMP_COLORS + color] & 0xFF);
 
@@ -4067,8 +4330,7 @@ int COLOR (int r, int g, int b)
   // Can be used as an argument for setcolor() and setbkcolor()
   // to set an ARGB color.
 
-  // set up the temporary color
-  bgi_tmp_color_argb = 0xff000000 | r << 16 | g << 8 | b;
+  bgi_argb_palette[ARGB_TMP_COL] = 0xff000000 | r << 16 | g << 8 | b;
   return -1;
 
 } // COLOR ()
@@ -4080,8 +4342,7 @@ int COLOR32 (Uint32 color)
   // Can be used as an argument for setcolor() and setbkcolor()
   // to set an ARGB color.
 
-  // set up the temporary color
-  bgi_tmp_color_argb = color;
+  bgi_argb_palette[ARGB_TMP_COL] = color;
   return -1;
 
 } // COLOR32 ()
@@ -4090,7 +4351,7 @@ int COLOR32 (Uint32 color)
 
 int GREEN_VALUE (int color)
 {
-  // Returns the green component of 'color' in the extended palette
+  // Returns the green component of 'color' in the ARGB palette
 
   return ((bgi_argb_palette[BGI_COLORS + TMP_COLORS + color] >> 8) & 0xFF);
 
@@ -4100,10 +4361,9 @@ int GREEN_VALUE (int color)
 
 int IS_BGI_COLOR (int color)
 {
-  // Returns 1 if the current color is a standard BGI color
-  // (not ARGB); the color argument is redundant
+  // Returns 1 if 'color' belongs to the default palette
 
-  return ! bgi_argb_mode;
+  return (! bgi_argb_mode && color < ARGB_TMP_COL + 1);
 
 } // IS_BGI_COLOR ()
 
@@ -4111,8 +4371,8 @@ int IS_BGI_COLOR (int color)
 
 int IS_RGB_COLOR (int color)
 {
-  // Returns 1 if the current color is a standard BGI color
-  // (not ARGB); the color argument is redundant
+  // Returns 1 if 'color' belongs to the ARGB palette. The 'color'
+  // argument is actually redundant
 
   return bgi_argb_mode;
 
@@ -4122,7 +4382,7 @@ int IS_RGB_COLOR (int color)
 
 int RED_VALUE (int color)
 {
-  // Returns the red component of 'color' in the extended palette
+  // Returns the red component of 'color' in the ARGB palette
 
   return ((bgi_argb_palette[BGI_COLORS + TMP_COLORS + color] >> 16) & 0xFF);
 
@@ -4133,6 +4393,8 @@ int RED_VALUE (int color)
 void _putpixel (int x, int y)
 {
   // like putpixel (), but not immediately displayed
+
+  check_initgraph ();
 
   // viewport range is taken care of by this function only,
   // since all others use it to draw.
@@ -4172,6 +4434,8 @@ void closewindow (int id)
 {
   // Closes a window.
 
+  check_initgraph ();
+
   if (SDL_FALSE == bgi_active_windows[id]) {
     fprintf (stderr, "Window %d does not exist\n", id);
     return;
@@ -4187,11 +4451,38 @@ void closewindow (int id)
 
 // -----
 
+int edelay (int msec)
+{
+  // Waits for 'msec' milliseconds and returns SDL_FALSE if no
+  // event occurred in the meantime, SDL_TRUE otherwise
+
+  Uint32
+    stop;
+  int
+    ev = SDL_FALSE;
+
+  update ();
+  stop = SDL_GetTicks () + msec;
+
+  do {
+
+    if (event())
+      ev = SDL_TRUE;
+
+  } while (SDL_GetTicks () < stop);
+
+  return ev;
+
+} // edelay ()
+
+// -----
+
 int event (void)
 {
   // Returns SDL_TRUE if an event has occurred.
 
   SDL_Event event;
+  update ();
 
   if (SDL_PollEvent (&event)) {
     if ( (SDL_KEYDOWN == event.type)         ||
@@ -4221,7 +4512,7 @@ int eventtype (void)
 
 void getbuffer (Uint32 *buffer)
 {
-  // Copies the current window contents to buffer, which must have
+  // Copies the current window contents to 'buffer', which must have
   // the same width and height as the current window.
 
   memcpy ((void *) buffer,
@@ -4325,7 +4616,7 @@ void getleftclick (void)
 
 void getlinebuffer (int y, Uint32 *linebuffer)
 {
-  // Copies the screen line at y coordinate to linebuffer;
+  // Copies the screen line at 'y' coordinate to 'linebuffer';
   // faster than getpixel ()
 
   memcpy ((void *) linebuffer,
@@ -4336,7 +4627,6 @@ void getlinebuffer (int y, Uint32 *linebuffer)
 } // getbuffer ()
 
 // -----
-
 
 void getmiddleclick (void)
 {
@@ -4353,11 +4643,15 @@ void getmiddleclick (void)
 
 void getmouseclick (int kind, int *x, int *y)
 {
-  // Sets the x,y coordinates of the last kind button click
+  // Sets the x,y coordinates of the last 'kind' button click
   // expected by ismouseclick().
 
-  *x = bgi_mouse.x;
-  *y = bgi_mouse.y;
+  if (kind == bgi_mouse.btn) {
+    *x = bgi_mouse.x;
+    *y = bgi_mouse.y;
+  }
+  else
+    *x = *y = -1;
 
 } // getmouseclick ()
 
@@ -4376,115 +4670,31 @@ void getrightclick (void)
 
 // -----
 
-static int bgi_font_adjusted = SDL_FALSE;
-
-static void fix_hershey_fonts ()
+void getscreensize (int *x, int *y)
 {
+  // Reports the screen size, regardless of the window dimensions.
 
-  unsigned char triplex_w[] = {
-    16, 7, 14, 18, 17, 21, 22, 7, 11, 10, 13, 21, 7, 21, 7, 21, 17, 15,
-    17, 17, 18, 17, 17, 17, 17, 17, 7, 7, 20, 21, 20, 16, 24, 19, 20, 18,
-    20, 19, 18, 20, 22, 10, 14, 20, 16, 24, 22, 19, 20, 19, 20, 17, 18,
-    22, 19, 23, 19, 21, 17, 7, 14, 8, 19, 17, 6, 17, 19, 16, 18, 16, 12,
-    17, 21, 10, 12, 20, 10, 32, 21, 17, 19, 17, 15, 14, 13, 21, 17, 23,
-    18, 18, 15, 10, 4, 9, 16, 0
-  };
+  check_initgraph ();
 
-  unsigned char small_w[] = {
-    6, 3, 5, 6, 6, 6, 6, 4, 5, 5, 6, 6, 6, 6, 5, 6, 6, 5, 6, 6, 6, 6, 6,
-    6, 6, 6, 5, 5, 6, 6, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 5, 6, 6, 6, 6,
-    6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 5, 6, 5, 6, 6, 6, 6, 6, 6, 6,
-    6, 5, 6, 6, 5, 6, 6, 5, 6, 6, 6, 6, 6, 6, 6, 5, 6, 6, 6, 6, 6, 6, 5,
-    4, 6, 6, 6
-  };
+    SDL_DisplayMode mode =
+  { SDL_PIXELFORMAT_UNKNOWN, 0, 0, 0, 0 };
 
-  unsigned char sans_w[] = {
-    16, 8, 16, 20, 18, 23, 24, 7, 13, 13, 15, 22, 8, 22, 8, 24, 19, 10,
-    19, 19, 20, 19, 18, 19, 19, 18, 8, 8, 21, 22, 21, 18, 26, 21, 18, 20,
-    19, 17, 17, 20, 19, 6, 15, 19, 17, 21, 19, 21, 18, 21, 18, 19, 18, 19,
-    21, 27, 19, 20, 19, 12, 24, 12, 15, 22, 13, 18, 18, 17, 18, 17, 13,
-    18, 17, 8, 8, 17, 6, 28, 17, 18, 18, 18, 14, 16, 12, 17, 17, 23, 17,
-    17, 17, 10, 5, 10, 23, 0
-  };
-
-  unsigned char gothic_w[] = {
-    16, 9, 14, 18, 17, 21, 23, 8, 11, 10, 13, 21, 8, 21, 8, 21, 18, 13,
-    17, 17, 17, 17, 18, 17, 18, 18, 8, 8, 20, 21, 20, 15, 24, 22, 22, 21,
-    21, 20, 22, 22, 22, 19, 18, 22, 20, 27, 23, 23, 20, 23, 22, 21, 21,
-    22, 21, 25, 21, 21, 18, 7, 14, 8, 19, 17, 7, 14, 16, 12, 15, 12, 12,
-    16, 16, 8, 8, 15, 8, 24, 16, 16, 16, 16, 12, 14, 9, 16, 15, 23, 17,
-    16, 15, 10, 14, 9, 14, 0
-  };
-
-  unsigned char cursive_w[] = {
-    21, 9, 13, 18, 19, 21, 24, 5, 12, 15, 12, 22, 22, 22, 9, 24, 22, 22,
-    22, 22, 22, 22, 22, 22, 22, 22, 9, 10, 20, 22, 20, 15, 24, 20, 20,
-    17, 24, 17, 19, 23, 23, 16, 14, 23, 19, 31, 22, 18, 22, 22, 22, 20,
-    25, 22, 21, 26, 26, 21, 19, 7, 19, 8, 19, 17, 5, 16, 14, 11, 16, 10,
-    13, 15, 15, 7, 15, 14, 8, 25, 18, 14, 15, 15, 13, 11, 9, 15, 15, 21,
-    16, 15, 14, 10, 4, 9, 17, 16
-  };
-
-  unsigned char futural_w[] = {
-    12, 6, 14, 18, 17, 21, 22, 6, 10, 11, 13, 22, 22, 22, 9, 14, 22, 22,
-    22, 22, 22, 22, 22, 22, 22, 22, 6, 6, 20, 22, 20, 15, 24, 19, 17, 19,
-    17, 15, 14, 18, 18, 4, 14, 17, 13, 20, 18, 19, 17, 19, 17, 17, 15, 18,
-    17, 22, 17, 17, 17, 7, 14, 8, 19, 17, 6, 16, 15, 15, 16, 15, 10, 16,
-    15, 7, 9, 13, 4, 26, 15, 16, 15, 16, 9, 14, 10, 15, 14, 19, 14, 15,
-    14, 10, 4, 9, 14, 16
-  };
-
-  unsigned char rowmant_w[] = {
-    16, 10, 16, 17, 19, 20, 24, 6, 15, 15, 12, 19, 19, 19, 5, 29, 19, 19,
-    19, 19, 19, 19, 19, 19, 19, 19, 8, 9, 18, 19, 18, 15, 23, 20, 23, 19,
-    22, 23, 23, 19, 28, 16, 20, 27, 19, 30, 27, 18, 24, 18, 23, 21, 20,
-    23, 20, 24, 26, 22, 22, 9, 29, 9, 15, 20, 6, 20, 14, 14, 20, 14, 21,
-    19, 21, 13, 16, 19, 9, 35, 24, 16, 22, 17, 18, 15, 12, 24, 18, 28, 21,
-    21, 16, 7, 2, 7, 20, 16
-  };
-
-  unsigned char timesr_w[] = {
-    18, 7, 15, 20, 19, 23, 24, 7, 12, 12, 15, 23, 23, 23, 8, 25, 23, 23,
-    23, 23, 23, 23, 23, 23, 23, 23, 7, 7, 21, 23, 21, 17, 26, 23, 22, 20,
-    22, 21, 21, 23, 25, 12, 16, 24, 20, 26, 24, 21, 22, 21, 23, 19, 20,
-    25, 23, 27, 23, 24, 19, 12, 27, 12, 21, 23, 7, 20, 21, 18, 21, 18, 14,
-    19, 23, 12, 11, 22, 12, 34, 23, 19, 21, 21, 18, 16, 16, 23, 21, 27,
-    21, 21, 17, 10, 5, 10, 23, 16
-  };
-
-  // fix the fonts only once
-  bgi_font_adjusted = SDL_TRUE;
-
-  // make the font width the same as .chr fonts
-
-  for (int i = 0; i < 96; i++) {
-    timesrb_width[i] = triplex_w[i];
-    small_width[i]   = small_w[i];
-    futuram_width[i] = sans_w[i];
-    gothgbt_width[i] = gothic_w[i];
-    cursive_width[i] = cursive_w[i];
-    futural_width[i] = futural_w[i];
-    rowmant_width[i] = rowmant_w[i];
-    timesr_width[i] = timesr_w[i];
+  if (SDL_GetDisplayMode (0, 0, &mode) != 0) {
+    SDL_Log ("SDL_GetDisplayMode() failed: %s", SDL_GetError ());
+    showerrorbox ("SDL_GetDisplayMode() failed");
+    exit (1);
   }
 
-  // make the font height more compatible with .chr fonts
+  *x = mode.w;
+  *y = mode.h;
 
-  timesrb_height = 28; // original height was 32
-  futuram_height = 28;
-  gothgbt_height = 28;
-  cursive_height = 37; // same as SCRI.CHR
-  futural_height = 35;
-  rowmant_height = 31;
-  timesr_height  = 35;
-
-} // fix_hershey_fonts ()
+} // getscreensize ()
 
 // -----
 
 void initwindow (int width, int height)
 {
-  // Initializes the graphics system, opening a width x height window.
+  // Initializes the graphics system, opening a 'width' x 'height' window.
 
   int
     display_count = 0,
@@ -4493,6 +4703,9 @@ void initwindow (int width, int height)
   static int
     first_run = SDL_TRUE,  // first run of initwindow()
     fullscreen = -1;       // fullscreen window already created?
+
+  // let's be proactive
+  bgi_error_code = grOk;
 
   // the mutex is used by update()
   if (!bgi_update_mutex)
@@ -4551,7 +4764,7 @@ void initwindow (int width, int height)
     bgi_num_windows++;
   }
   else {
-    fprintf (stderr, "Cannot create new window.\n");
+    fprintf (stderr, "Could not create new window.\n");
     return;
   }
 
@@ -4566,7 +4779,7 @@ void initwindow (int width, int height)
   bgi_maxy = height - 1;
 
   if (SDL_FALSE == bgi_fast_mode) {  // called by initgraph ()
-    if (!width || !height) {    // fullscreen
+    if (!width || !height) {         // fullscreen
       bgi_maxx = mode.w - 1;
       bgi_maxy = mode.h - 1;
       bgi_window_flags = bgi_window_flags | SDL_WINDOW_FULLSCREEN_DESKTOP;
@@ -4604,21 +4817,23 @@ void initwindow (int width, int height)
                       bgi_maxx + 1,
                       bgi_maxy + 1,
                       bgi_window_flags);
+
   // is the window OK?
   if (NULL == bgi_win[bgi_current_window]) {
     SDL_Log ("Could not create window: %s\n", SDL_GetError ());
-    return;
+    exit (1);
   }
 
   // window ok; create renderer
   bgi_rnd[bgi_current_window] =
     SDL_CreateRenderer (bgi_win[bgi_current_window], -1,
-			// slow but guaranteed to exist
+			// slow but guaranteed to exist. OR'ing
+			// other options causes a segfault on my
+			// NVIDIA GeForce 920M, driver version 450.
                         SDL_RENDERER_SOFTWARE);
-
   if (NULL == bgi_rnd[bgi_current_window]) {
     SDL_Log ("Could not create renderer: %s\n", SDL_GetError ());
-    return;
+    exit (1);
   }
 
   // finally, create the texture
@@ -4626,12 +4841,11 @@ void initwindow (int width, int height)
     SDL_CreateTexture (bgi_rnd[bgi_current_window],
                        SDL_PIXELFORMAT_ARGB8888,
 		       SDL_TEXTUREACCESS_STREAMING,
-                       // SDL_TEXTUREACCESS_TARGET,
                        bgi_maxx + 1,
                        bgi_maxy + 1);
   if (NULL == bgi_txt[bgi_current_window]) {
     SDL_Log ("Could not create texture: %s\n", SDL_GetError ());
-    return;
+    exit (1);
   }
 
   // visual pages
@@ -4680,11 +4894,68 @@ void initwindow (int width, int height)
 
   SDL_UnlockMutex (bgi_update_mutex);
 
-  // fix fonts width to make them more similar
-  // to the original .chr fonts
+  // fix fonts magnification
 
-  if (SDL_FALSE == bgi_font_adjusted)
-    fix_hershey_fonts ();
+  short int default_h[] = 
+  {8, 8, 16, 24, 32, 40, 40, 48, 56, 64, 72, 80};
+  short int trip_h[] = 
+  {31, 18, 20, 23, 31, 41, 51, 62, 77, 93, 124};
+  short int litt_h[] = 
+  {9, 5, 6, 6, 9, 12, 15, 18, 22, 27, 36};
+  short int sans_h[] = 
+  {32, 19, 21, 24, 32, 42, 53, 64, 80, 96, 128};
+  short int goth_h[] = 
+  {32, 19, 21, 24, 32, 42, 53, 64, 80, 96, 128};
+  short int scri_h[] = 
+  {37, 22, 24, 27, 37, 49, 61, 74, 92, 111, 148};
+  short int simp_h[] = 
+  {35, 21, 23, 26, 35, 46, 58, 70, 87, 105, 140};
+  short int tscr_h[] = 
+  {31, 18, 20, 23, 31, 41, 51, 62, 77, 93, 124};
+  short int lcom_h[] = 
+  {35, 21, 23, 26, 35, 46, 58, 70, 87, 105, 140};
+  short int euro_h[] = 
+  {55, 33, 36, 41, 55, 73, 91, 110, 137, 165, 220};
+  short int bold_h[] = 
+  {60, 36, 40, 45, 60, 80, 100, 120, 150, 180, 240};
+  
+  // set font magnification
+  for (int i = 0; i < FONT_SIZES; i++) {
+    
+    bgi_font_magnification[DEFAULT_FONT][i] = 
+    default_h[i] / 8; // bitmap font height
+    
+    bgi_font_magnification[TRIPLEX_FONT][i] = 
+    (float) trip_h[i] / (float) trip_height;
+
+    bgi_font_magnification[SMALL_FONT][i] = 
+    (float) litt_h[i] / (float) litt_height;
+
+    bgi_font_magnification[SANS_SERIF_FONT][i] = 
+    (float) sans_h[i] / (float) sans_height;
+    
+    bgi_font_magnification[GOTHIC_FONT][i] = 
+    (float) goth_h[i] / (float) goth_height;
+    
+    bgi_font_magnification[SCRIPT_FONT][i] = 
+    (float) scri_h[i] / (float) scri_height;
+    
+    bgi_font_magnification[SIMPLEX_FONT][i] = 
+    (float) simp_h[i] / (float) simp_height;
+    
+    bgi_font_magnification[TRIPLEX_SCR_FONT][i] = 
+    (float) tscr_h[i] / (float) tscr_height;
+    
+    bgi_font_magnification[COMPLEX_FONT][i] = 
+    (float) lcom_h[i] / (float) lcom_height;
+    
+    bgi_font_magnification[EUROPEAN_FONT][i] = 
+    (float) euro_h[i] / (float) euro_height;
+    
+    bgi_font_magnification[BOLD_FONT][i] = 
+    (float) bold_h[i] / (float) bold_height;
+  
+  } // for i
 
 } // initwindow ()
 
@@ -4699,21 +4970,24 @@ int ismouseclick (int btn)
   switch (btn) {
 
   case SDL_BUTTON_LEFT:
+    bgi_mouse.btn = SDL_BUTTON_LEFT;
     return (SDL_GetMouseState (&bgi_mouse.x, &bgi_mouse.y) &
 	    SDL_BUTTON(1));
     break;
 
   case SDL_BUTTON_MIDDLE:
+    bgi_mouse.btn = SDL_BUTTON_MIDDLE;
     return (SDL_GetMouseState (&bgi_mouse.x, &bgi_mouse.y) &
 	    SDL_BUTTON(2));
     break;
 
   case SDL_BUTTON_RIGHT:
+    bgi_mouse.btn = SDL_BUTTON_RIGHT;
     return (SDL_GetMouseState (&bgi_mouse.x, &bgi_mouse.y) &
 	    SDL_BUTTON(3));
     break;
 
-  }
+  } // switch
 
   return SDL_FALSE;
 
@@ -4782,10 +5056,12 @@ int mousey (void)
 
 void putbuffer (Uint32 *buffer)
 {
-  // Copies a buffer to the screen; the buffer must have the same
+  // Copies 'buffer' to the screen; 'buffer' must have the same
   // width and height as the current window.
   // Inspired by:
   // https://lodev.org/cgtutor/examples.html#Drawbuffer
+
+  check_initgraph ();
 
   memcpy ((void *) bgi_activepage[bgi_current_window],
 	  buffer,
@@ -4798,8 +5074,10 @@ void putbuffer (Uint32 *buffer)
 
 void putlinebuffer (int y, Uint32 *linebuffer)
 {
-  // Copies linebuffer to y coordinate;
+  // Copies 'linebuffer' to the 'y' coordinate;
   // faster than putpixel ()
+
+  check_initgraph ();
 
   memcpy ((void *) bgi_activepage[bgi_current_window] +
 	  y * (bgi_maxx + 1) * sizeof (Uint32),
@@ -4814,6 +5092,8 @@ void putlinebuffer (int y, Uint32 *linebuffer)
 void readimagefile (char *bitmapname, int x1, int y1, int x2, int y2)
 {
   // Reads a .bmp file and displays it immediately at (x1, y1 ).
+
+  check_initgraph ();
 
   Uint32
     *pixels;
@@ -4897,6 +5177,42 @@ void refresh (void)
 
 // -----
 
+void resetwinoptions (int id, char *title, int x, int y)
+{
+  // Resets title and window position.
+
+  check_initgraph ();
+
+  if (SDL_TRUE == bgi_active_windows[id]) {
+
+    if (strlen (title) > BGI_WINTITLE_LEN) {
+      fprintf (stderr, "BGI window title name too long.\n");
+      showerrorbox ("BGI window title name too long.");
+    }
+    else
+      // if (0 != strlen (title))
+      SDL_SetWindowTitle (bgi_win[id], title);
+
+    if (x != -1 && y != -1)
+      SDL_SetWindowPosition (bgi_win[id], x, y);
+
+  } // if
+
+} // resetwinoptions ()
+
+// -----
+
+void resizepalette (Uint32 newsize)
+{
+  // Resizes the palette to 'newsize'
+
+  PALETTE_SIZE = newsize;
+  initpalette ();
+  
+} // resizepalette ()
+
+// -----
+
 // callback for sdlbgiauto ()
 
 static Uint32 updatecallback (Uint32 interval, void *param)
@@ -4956,10 +5272,12 @@ static void update_pixel (int x, int y)
 
 // -----
 
-void sdlbgiauto ()
+void sdlbgiauto (void)
 {
   // Triggers "auto refresh mode", i.e. refresh() is performed
   // automatically on a separate thread.
+
+  check_initgraph ();
 
   Uint32
     interval;
@@ -4994,6 +5312,8 @@ void sdlbgifast (void)
   // Triggers "fast mode", i.e. refresh() is needed to
   // display graphics.
 
+  check_initgraph ();
+
   bgi_fast_mode = SDL_TRUE;
 
 } // sdlbgifast ()
@@ -5004,6 +5324,8 @@ void sdlbgislow (void)
 {
   // Triggers "slow mode", i.e. refresh() is not needed to
   // display graphics.
+
+  check_initgraph ();
 
   bgi_fast_mode = SDL_FALSE;
 
@@ -5017,11 +5339,9 @@ void setalpha (int col, Uint8 alpha)
 
   Uint32 tmp;
 
-  // COLOR () set up the WHITE + 1 color
-  if (-1 == col) {
-    bgi_argb_mode = SDL_TRUE;
-    bgi_fg_color = WHITE + 1;
-  }
+  // COLOR () set the ARGB_FG_COL colour
+  if (-1 == col)
+    bgi_fg_color = ARGB_FG_COL;
   else {
     bgi_argb_mode = SDL_FALSE;
     bgi_fg_color = col;
@@ -5036,10 +5356,11 @@ void setalpha (int col, Uint8 alpha)
 
 void setbkrgbcolor (int index)
 {
-  // Sets the current background color using using the
-  // n-th color index in the ARGB palette.
+  // Sets the current background color to the 'index' colour
+  // in the ARGB palette.
 
   bgi_bg_color = BGI_COLORS + TMP_COLORS + index;
+  bgi_argb_mode = SDL_TRUE;
 
 } // setbkrgbcolor ()
 
@@ -5047,7 +5368,8 @@ void setbkrgbcolor (int index)
 
 void setblendmode (int blendmode)
 {
-  // Sets the blending mode; SDL_BLENDMODE_NONE or SDL_BLENDMODE_BLEND
+  // Sets the blending mode; it can be either 
+  // SDL_BLENDMODE_NONE or SDL_BLENDMODE_BLEND
 
   bgi_blendmode = blendmode;
 
@@ -5058,6 +5380,8 @@ void setblendmode (int blendmode)
 void setcurrentwindow (int id)
 {
   // Sets the current window.
+
+  check_initgraph ();
 
   if (SDL_FALSE == bgi_active_windows[id]) {
     fprintf (stderr, "Window %d does not exist.\n", id);
@@ -5081,10 +5405,11 @@ void setcurrentwindow (int id)
 
 void setrgbcolor (int index)
 {
-  // Sets the current drawing color using the n-th color index
+  // Sets the current foreground color to the 'index' colour
   // in the ARGB palette.
 
   bgi_fg_color = BGI_COLORS + TMP_COLORS + index;
+  bgi_argb_mode = SDL_TRUE;
 
 } // setrgbcolor ()
 
@@ -5092,10 +5417,13 @@ void setrgbcolor (int index)
 
 void setrgbpalette (int colornum, int red, int green, int blue)
 {
-  // Sets the n-th entry in the ARGB palette specifying the r, g,
-  // and b components.
+  // Sets the 'colornum' entry in the ARGB palette specifying its
+  // r, g, and b components.
 
-  bgi_argb_palette[BGI_COLORS + TMP_COLORS + colornum] =
+  check_initgraph ();
+  
+  if (colornum < PALETTE_SIZE + 1 && colornum >= 0)
+    bgi_argb_palette[BGI_COLORS + TMP_COLORS + colornum] =
     0xff000000 | red << 16 | green << 8 | blue;
 
 } // setrgbpalette ()
@@ -5104,6 +5432,11 @@ void setrgbpalette (int colornum, int red, int green, int blue)
 
 void setwinoptions (char *title, int x, int y, Uint32 flags)
 {
+  // Sets window options.
+
+  // reset flags for new windows
+  bgi_window_flags = 0;
+
   if (strlen (title) > BGI_WINTITLE_LEN) {
     fprintf (stderr, "BGI window title name too long.\n");
     showerrorbox ("BGI window title name too long.");
@@ -5124,10 +5457,11 @@ void setwinoptions (char *title, int x, int y, Uint32 flags)
         flags & SDL_WINDOW_SHOWN              ||
         flags & SDL_WINDOW_HIDDEN             ||
         flags & SDL_WINDOW_BORDERLESS         ||
+	flags & SDL_WINDOW_MAXIMIZED          ||
         flags & SDL_WINDOW_MINIMIZED)
       bgi_window_flags = flags;
 
-} // setwinopts ()
+} // setwinoptions ()
 
 // -----
 
@@ -5156,6 +5490,8 @@ void showinfobox (const char *message)
 void swapbuffers (void)
 {
   // Swaps current visual and active pages.
+
+  check_initgraph ();
 
   int oldv = getvisualpage ();
   int olda = getactivepage ();
@@ -5235,8 +5571,10 @@ static void updaterect (int x1, int y1, int x2, int y2)
 void writeimagefile (char *filename,
                      int left, int top, int right, int bottom)
 {
-  // Writes a .bmp file from the screen rectangle
-  // defined by left, top, right, bottom.
+  // Writes a .bmp file from the screen rectangle defined by 
+  // 'left', 'top', 'right', 'bottom'.
+
+  check_initgraph ();
 
   SDL_Surface
     *dest;
