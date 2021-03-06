@@ -64,11 +64,11 @@ int main (int argc, char *argv[])
   refresh ();
   showinfobox ("Left click to switch between\n"
 	       "putlinebuffer() and putpixel();\n"
-	       "press any key to exit.");
+	       "any key to stop.");
 
   int mode = 1;
   
-  while (! kbhit ()) {
+  while (! xkbhit ()) {
     
     if (WM_LBUTTONDOWN == mouseclick ()) {
       mode ^= 1;
@@ -97,7 +97,8 @@ int main (int argc, char *argv[])
     
     delay (5);
     refresh ();
-  }
+  
+  } // while
   
   puts ("Bye!");
   closegraph();

@@ -125,14 +125,6 @@ void blue_palette (void)
 
 // -----
 
-int click (void)
-{
-  int p = mouseclick ();
-  return (p > 0 && p < WM_MOUSEMOVE);
-} // click ()
-	
-// -----
-
 void explain (void)
 {
   int
@@ -162,7 +154,7 @@ void explain (void)
   outtextxy (maxx / 2, maxy / 2,
 	   "middle click to restore the initial boundary;");
   outtextxy (maxx / 2, maxy / 2 + c,
-	   "'i' and 'd' to increase/decrease max iterations;");
+	   "'i' or '+', 'd' or '-' to increase/decrease max iterations;");
   
   outtextxy (maxx / 2, maxy / 2 + 2*c,
 	   "arrow keys to move around;");
@@ -194,16 +186,18 @@ void explain (void)
 int main (int argc, char *argv[])
 {
   int palette, c, init, redraw, flag;
-  double xm, ym, xstep, ystep, x1, y1, x2, y2;
+  double xm, ym, xstep, ystep, xmin, ymin, xmax, ymax;
   char s[20];
   
   initwindow (0, 0); // fullscreen
   
   maxx = getmaxx ();
   maxy = getmaxy ();
+  // initial coordinates of the middle point of the screen
   xm = -1.2;
   ym = 0.0;
-  xstep = 1.6;
+  // initial range: xm +- xstep, ym +- ystep 
+  xstep = (double) maxx / (double) maxy;
   ystep = 1.2;
   init = flag = redraw = 1;
   
@@ -215,13 +209,13 @@ int main (int argc, char *argv[])
   c = 'G';
   while (c != KEY_ESC) {
     
-    x1 = xm - xstep;
-    y1 = ym - ystep;
-    x2 = xm + xstep;
-    y2 = ym + ystep;
+    xmin = xm - xstep;
+    ymin = ym - ystep;
+    xmax = xm + xstep;
+    ymax = ym + ystep;
 
     if (redraw) {
-      mandelbrot (x1, y1, x2, y2);
+      mandelbrot (xmin, ymin, xmax, ymax);
       // added!
       refresh ();
       if (flag) {
@@ -240,18 +234,20 @@ int main (int argc, char *argv[])
       
     case WM_LBUTTONDOWN:
     case WM_WHEELUP:
-      xm = x1 + (x2 - x1) * mousex () / maxx;
-      ym = y1 + (y2 - y1) * mousey () / maxy;
-      xstep /= 2;
-      ystep /= 2;
+      xm = xmin + 2 * xstep * mousex () / maxx;
+      ym = ymin + 2 * ystep * mousey () / maxy;
+      /* xm = xmin + (xmax - xmin) * mousex () / maxx; */
+      /* ym = ymin + (ymax - ymin) * mousey () / maxy; */
+      xstep /= 2.0;
+      ystep /= 2.0;
       init = 0;
       redraw = 1;
       break;
       
     case WM_RBUTTONDOWN:
     case WM_WHEELDOWN:
-      xstep *= 2;
-      ystep *= 2;
+      xstep *= 2.0;
+      ystep *= 2.0;
       init = 0;
       redraw = 1;
       break;
@@ -291,6 +287,7 @@ int main (int argc, char *argv[])
       break;
     
     case 'i':
+    case '+':
       max_iter += 50;
       if (max_iter > PALETTE_SIZE)
 	max_iter = PALETTE_SIZE;
@@ -301,6 +298,7 @@ int main (int argc, char *argv[])
       break;
     
     case 'd':
+    case '-':
       max_iter -= 50;
       if (max_iter < 50)
 	max_iter = 50;
@@ -311,22 +309,22 @@ int main (int argc, char *argv[])
       break;
 
     case KEY_LEFT:
-      xm += (x2 - x1) / 20;
+      xm -= (xmax - xmin) / 20;
       redraw = 1;
       break;
 
     case KEY_RIGHT:
-      xm -= (x2 - x1) / 20;
+      xm += (xmax - xmin) / 20;
       redraw = 1;
       break;
 
     case KEY_UP:
-      ym += (y2 - y1) / 20;
+      ym -= (ymax - ymin) / 20;
       redraw = 1;
       break;
 
     case KEY_DOWN:
-      ym -= (y2 - y1) / 20;
+      ym += (ymax - ymin) / 20;
       redraw = 1;
       break;
       

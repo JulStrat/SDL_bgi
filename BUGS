@@ -1,17 +1,15 @@
 BUGS
 ----
 
-- visualisation problems on NVIDIA GK208BM (GeForce 920M) with 
-nvidia-driver-450 on GNU/Linux. As far as I can say, this is an NVIDIA
+- automatic refresh does not work on NVIDIA GK208BM (GeForce 920M) with 
+nvidia-driver-* on GNU/Linux. As far as I can say, this is an NVIDIA
 driver problem.
 
-- In MSYS2 + Mingw-w64, the getch() function may hang. This is a
-problem in MSYS2/Mingw-w64 console handling.
+- In MSYS2 + Mingw-w64, the getch() function may hang. Apparently,
+this is a problem in MSYS2/Mingw-w64 console handling.
 
-- According to the original BGI documentation: "If a string is printed
-with the default font using outtext or outtextxy, any part of the
-string that extends outside the current viewport is truncated."
-SDL_bgi follows this rule, but bgidemo.c running in Turbo C 2.01 does
-not. This is a Turbo C bug; please see `tmp/truncate.c`.
+- in Raspbian 10 for ARM, the 'p' letter is drawn incorrectly in
+SCRIPT_FONT. The bug does not affect Raspbian 10 for i386.
+Reported by Ioulianos Kakoulidis.
 
 Please report bugs if you find any.

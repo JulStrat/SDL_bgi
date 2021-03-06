@@ -1,6 +1,15 @@
 Changelog
 ---------
 
+v. 2.4.3, 2021-02-24
+- modified getscreensize() behaviour (suggested by Fanourios Attard)
+- added setwintitle()
+- added man page (graphics.3)
+- documentation fixes and updates
+- changed test/simple.c to avoid getch() bug on MSYS2
+- updated Windows Makefiles to SDL2-2.0.14 and latest releases of
+  Code::Blocks and DevCpp
+
 v. 2.4.2, 2020-11-11
 - implemented native vector fonts, compatible with Borland .CHR fonts
 - implemented long-forgotten graphics error checks!

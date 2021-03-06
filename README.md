@@ -3,7 +3,7 @@ README
 
 `SDL_bgi` is a multiplatform, SDL2-based `GRAPHICS.H` implementation.
 
-Its name refers to BGI, the Borland Graphics Interface that was the
+The name refers to BGI, the Borland Graphics Interface that was the
 'de facto' standard in PC graphics back in DOS days; it was made
 popular by Borland Turbo C/C++ compilers. I wrote `SDL_bgi` because
 I wanted a simple to use but fast graphics library for my experiments
@@ -14,7 +14,7 @@ in Turbo C 2.01 and Borland C++ 1.0; for instance, it compiles and
 runs the original `bgidemo.c`. `SDL_bgi` also provides nearly full
 compatibility with another BGI implementation, WinBGIm (see links
 below). One of the aims of `SDL_bgi` is the preservation of old
-software written for BGI, but not only.
+software written for BGI; but not only that.
 
 `SDL_bgi` provides graphics primitives, and is much easier to use than
 plain SDL2. It should be especially useful for beginners, i.e. in
@@ -26,8 +26,8 @@ programs, too.
 
 `SDL_bgi` should compile on any platform supported by SDL2; it has
 been tested on GNU/Linux, MS Windows (MSYS2 + Mingw-w64, CodeBlocks,
-Dev-C++), macOS (High Sierra and Catalina), and Raspberry Pi. A few
-example programs are provided in the `test/` directory.
+Dev-C++), macOS (High Sierra and Catalina), and Raspios (ARM, i386). A
+few example programs are provided in the `test/` directory.
 
 If you don't need BGI compatibility, I suggest that you check out
 `SDL_gfx`, a graphics library that is more complete and more powerful

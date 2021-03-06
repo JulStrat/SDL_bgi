@@ -1,7 +1,7 @@
 % sdl_bgi-quickref.tex
 %
 % Guido Gonzato, PhD
-% November 6, 2020
+% February 12, 2021
 
 \documentclass[a4paper,12pt]{article}
 \usepackage{graphicx}
@@ -22,7 +22,7 @@
 
 \newcommand{\SDLbgi}{\texttt{SDL\_bgi}}
 
-\newcommand{\version}{2.4.2}        % !!! <<<=== Change here !!!
+\newcommand{\version}{2.4.3}        % !!! <<<=== Change here !!!
 
 \newcommand{\V}{\texttt{void}}      % void
 \newcommand{\I}{\texttt{int}}       % int
@@ -98,7 +98,7 @@ in C. It is much simpler to use than SDL2, OpenGL and the like;
 obviously, it's less complete. Teachers may find \SDLbgi{} a useful
 tool for introductory computer graphics courses.
 
-This is a minimal program that opens a window and draws 1000 random
+This is a minimal program that opens a  window and draws 1000 random
 lines:
 
 \begin{small}
@@ -109,7 +109,7 @@ lines:
 int main (int argc, char *argv[])
 {
   int i, gd = DETECT, gm;
-  initgraph (&gd, &gm, "");
+  initgraph (&gd, &gm, ""); // default: 800 x 600
   setbkcolor (BLACK);
   cleardevice ();
   outtextxy (0, 0, "Drawing 1000 lines...");
@@ -146,8 +146,8 @@ changed using appropriate functions.
 
 \subsection{Constants}
 
-Many constants are defined in \F{SDL\_bgi.h}. The most important are
-the following:
+\F{SDL\_bgi.h} contains many definitions the programmer should be
+aware of. The most important are the following:
 
 \begin{small}
 \begin{spacing}{0.85}
@@ -168,7 +168,7 @@ the following:
 #include <math.h>    // for sin(), cos()
 #include <string.h>  // for strlen(), memcpy()
 
-#define SDL_BGI_VERSION 2.4.2
+#define SDL_BGI_VERSION 2.4.3
 
 enum { NOPE, YEAH } ;
 #define BGI_WINTITLE_LEN 512 // more than enough
@@ -370,17 +370,9 @@ enum graphics_errors {
   grInvalidFontNum   = -14,
   grInvalidVersion   = -18
 };
-\end{verbatim}
-\end{spacing}
-\end{small}
 
-\subsection{Structs}
+// structs
 
-Some of the BGI functions use the following structs:
-
-\begin{small}
-\begin{spacing}{0.85}
-\begin{verbatim}
 struct arccoordstype {
   int x;
   int y;
@@ -408,9 +400,8 @@ struct linesettingstype {
 };
 
 struct palettetype {
-  unsigned char size;
-  // signed char in Turbo C / Borland C++
-  Uint32 colors[MAXCOLORS + 1];
+  Uint32 size;                  // unsigned char in Turbo C / Borland C++
+  Uint32 colors[MAXCOLORS + 1]; // signed char in Turbo C / Borland C++
 };
 
 struct textsettingstype {
@@ -491,6 +482,7 @@ accessible to the programmer:
 SDL_Window   *bgi_window;
 SDL_Renderer *bgi_renderer;
 SDL_Texture  *bgi_texture;
+extern Uint32 PALETTE_SIZE;
 \end{verbatim}
 \end{spacing}
 \end{small}
@@ -632,7 +624,7 @@ Closes the graphics system.
 \end{bgi}
 
 Detects the graphics driver and default graphics mode to use; \T{SDL}
-and \T{SDL\_FULLSCREEN}, respectively.
+and \T{SDL\_FULL\-SCREEN}, respectively.
 
 % -----
 
@@ -745,7 +737,7 @@ Retrieves the current graphics mode's aspect ratio. In \SDLbgi,
 \end{bgi}
 
 Returns the current background colour in the default palette. If the
-background colour was set by \func{COLOR}, \func{getbkcolor} returns
+background colour was set by \func{COLOR()}, \func{getbkcolor()} returns
 -1.
 
 % -----
@@ -758,8 +750,8 @@ background colour was set by \func{COLOR}, \func{getbkcolor} returns
 \end{bgi}
 
 Returns the current drawing (foreground) colour in the default
-palette. If the foregroud colour was set by \func{COLOR},
-\func{getcolor} returns -1.
+palette. If the foregroud colour was set by \func{COLOR()},
+\func{getcolor()} returns -1.
 
 % -----
 
@@ -916,7 +908,7 @@ graphics mode.
 \A{*himode});
 \end{bgi}
 
-Gets the range of valid graphics modes. The \A{graphdriver} parameter
+Returns the range of valid graphics modes. The \A{graphdriver} parameter
 is ignored.
 
 % -----
@@ -1022,10 +1014,11 @@ Returns the current viewport's \A{y} coordinate.
 \V{} \func{graphdefaults} (\V{});
 \end{bgi}
 
-Resets all graphics settings to their defaults: sets the viewport to
-the entire screen, moves the CP to (0, 0), sets the default palette
-colours, the default drawing and background colour, the default fill
-style and pattern, the default text font and justification.
+Resets all graphics settings to their default values: sets the
+viewport to the entire screen, moves the CP to (0, 0), sets the
+default palette colours, the default drawing and background colour,
+the default fill style and pattern, the default text font and
+justification.
 
 % -----
 
@@ -1049,7 +1042,7 @@ Returns a pointer to the error message string associated with
 \end{bgi}
 
 Returns the error code for the last unsuccessful graphics operation
-and resets the error level to grOk.
+and resets the error level to \texttt{grOk}.
 
 % -----
 
@@ -1085,7 +1078,7 @@ $\times$ 480) will be forced.
 
 You can also use \T{NULL} for \A{*graphdriver} and \A{*graphmode} to
 get the default resolution (800 $\times$ 600), or use
-\func{detectgraph} (see above) to get fullscreen.
+\func{detectgraph()} (see above) to get fullscreen.
 
 Multiple windows can be created, unless a fullscreen window is already
 present.
@@ -1132,10 +1125,10 @@ Unimplemented; not used by \SDLbgi.
 \end{bgi}
 
 Loads and installs a \file{.CHR} font from disk. The function returns
-an integer to be used as first argument in \func{settextstyle}.
+an integer to be used as first argument in \func{settextstyle()}.
 
 \emph{Note:} font metrics of loaded \file{.CHR} files are not
-pixel-perfect yet. This function does not work on Windows.
+pixel-perfect yet.
 
 % -----
 
@@ -1157,7 +1150,7 @@ Draws a line between two specified points; the CP is not updated.
 \V{} \func{linerel} (\I{} \A{dx}, \I{} \A{dy});
 \end{bgi}
 
-Draws a line from the CP to a point that is (\A{dx},\A{dy}) pixels
+Draws a line from the CP to a point that is (\A{dx}, \A{dy}) pixels
 from the CP. The CP is then advanced by (\A{dx}, \A{dy}).
 
 % -----
@@ -1243,7 +1236,7 @@ pie slice is filled using the current fill colour.
 
 Puts the bit image pointed to by \A{bitmap} onto the screen, with the
 upper left corner of the image placed at (\A{left}, \A{top}). \A{op}
-specifies the drawing mode (COPY\_PUT, etc).
+specifies the drawing mode (\T{COPY\_PUT}, etc).
 
 % -----
 
@@ -1254,7 +1247,7 @@ specifies the drawing mode (COPY\_PUT, etc).
 \V{} \func{putpixel} (\I{} \A{x}, \I{} \A{y}, \I{} \A{color});
 \end{bgi}
 
-Plots a point at (\A{x},\A{y}) in the colour defined by \A{color}.
+Plots a pixel at (\A{x}, \A{y}) in the colour defined by \A{color}.
 
 % -----
 
@@ -1266,8 +1259,8 @@ Plots a point at (\A{x},\A{y}) in the colour defined by \A{color}.
 \I{} \A{bottom});
 \end{bgi}
 
-Draws a rectangle delimited by (\A{left},\A{top}) and
-(\A{right},\A{bottom}).
+Draws a rectangle delimited by (\A{left}, \A{top}) and
+(\A{right}, \A{bottom}).
 
 % -----
 
@@ -1326,7 +1319,7 @@ traveling from \A{stangle} to \A{endangle}.
 \end{bgi}
 
 Makes \A{page} the active page for all subsequent graphics output. In
-multi-window mode, \func{setactivepage} only works for the first window.
+multi-window mode, \func{setactivepage()} only works for the first window.
 
 % -----
 
@@ -1420,7 +1413,7 @@ Unimplemented; not used by \SDLbgi.
 \end{bgi}
 
 Shows the window that was hidden by \func{restorecrtmode()}. The
-\A{mode} parameter is ignored
+\A{mode} parameter is ignored,
 
 % -----
 
@@ -1455,7 +1448,7 @@ Arcs, circles, ellipses, and pieslices are not affected by
 \end{bgi}
 
 Changes the standard palette \A{colornum} to \A{color}, which can also
-be specified using the \func{COLOR} function.
+be specified using the \func{COLOR()} function.
 
 % -----
 
@@ -1484,23 +1477,18 @@ horizontally and vertically; settings are \T{LEFT\_TEXT},
 Sets the text font (8$\times$8 bitmap font \T{DEFAULT\_FONT} and
 vector fonts \T{TRIPLEX\_FONT}, \T{SMALL\-\_FONT},
 \T{SANS\_SERIF\_FONT}, \T{GOTHIC\_FONT}, \T{SCRIPT\_FONT},
-\T{SIMPLEX\_FONT}, \T{TRIPLEX\_SCR\_FONT}), the text direction
+\T{SIMPLEX\_FONT}, \T{TRI\-PLEX\_SCR\_FONT}), the text direction
 (\T{HORIZ\_DIR}, \T{VERT\_DIR}), and the size of the characters.
 
 \A{charsize} is a scaling factor for the text (max. 10). If
 \A{charsize} is 0, the text will either use the default size, or it
 will be scaled by the values set with \func{setusercharsize()}.
 
-Vector fonts are implemented using built-in Hershey fonts. Fonts
-\T{EUROPEAN\_FONT} and \T{BOLD\_FONT} have no Hershey equivalent, and
-are mapped to \T{TRIPLEX\_FONT}.
-
 Experimental feature: if a \file{.CHR} font is available in the same
 directory as the running program, it will be loaded and used instead
-of its Hershey equivalent.
+of its internal equivalent.
 
-\emph{Note:} pixel-perfect font metrics are not supported yet. This
-feature does not work on Windows.
+\emph{Note:} pixel-perfect font metrics are not supported yet.
 
 % -----
 
@@ -1513,9 +1501,9 @@ feature does not work on Windows.
 \end{bgi}
 
 Lets the user change the character width and height. If a previous
-call to \func{settextstyle()} set \A{charsize} to 0, the default width
-is scaled by \A{multx}/\A{divx}, and the default height is scaled by
-\A{multy}/\A{divy}.
+call to \func{settextsty\-le()} set \A{charsize} to 0, the default
+width is scaled by \A{multx}/\A{divx}, and the default height is
+scaled by \A{multy}/\A{divy}.
 
 % -----
 
@@ -1574,7 +1562,7 @@ Returns the height in pixels of a string.
 \I{} \func{textwidth} (\C{}\A{textstring});
 \end{bgi}
 
-Returns the height in pixels of a string.
+Returns the width in pixels of a string.
 
 % -----
 
@@ -1672,8 +1660,8 @@ specifying its ARGB components. The colour is stored in
 \T{ARGB\_TMP\_COL}, and it is also copied in one of the following:
 \T{ARGB\_FG\_COL}, \T{ARGB\_BG\_COL}, \T{ARGB\_FILL\_COL}.
 
-Functions \func{ALPHA\_VALUE}, \func{BLUE\_VALUE},
-\func{GREEN\_VALUE}, and \func{RED\_VALUE} do not work on temporary
+Functions \func{ALPHA\_VALUE()}, \func{BLUE\_VALUE()},
+\func{GREEN\_VALUE()}, and \func{RED\_VALUE()} do not work on temporary
 colours.
 
 % -----
@@ -1691,8 +1679,8 @@ ARGB integer. The colour is stored in \T{ARGB\_TMP\_COL}, and it is
 also copied in one of the following: \T{ARGB\_FG\_COL},
 \T{ARGB\_BG\_COL}, \T{ARGB\_FILL\_COL}.
 
-Functions \func{ALPHA\_VALUE}, \func{BLUE\_VALUE},
-\func{GREEN\_VALUE}, and \func{RED\_VALUE} do not work on temporary
+Functions \func{ALPHA\_VALUE()}, \func{BLUE\_VALUE()},
+\func{GREEN\_VALUE()}, and \func{RED\_VALUE()} do not work on temporary
 colours.
 
 % -----
@@ -1729,7 +1717,7 @@ Returns the green component of an ARGB colour in the ARGB palette.
 \end{bgi}
 
 Returns 1 if the \emph{current} drawing colour is a standard BGI
-colour (that is, not ARGB).
+colour (that is, not ARGB). The \A{color} argument is actually redundant.
 
 % -----
 
@@ -1763,7 +1751,7 @@ Returns the red component of an ARGB colour in the ARGB palette.
 \V{} \func{\_putpixel} (\I{} \A{x}, \I{} \A{y});
 \end{bgi}
 
-Plots a point at (\A{x},\A{y}) using the current drawing colour. This
+Plots a point at (\A{x}, \A{y}) using the current drawing colour. This
 function may be faster than \func{putpixel()}.
 
 % -----
@@ -1775,17 +1763,17 @@ function may be faster than \func{putpixel()}.
 \V{} \func{closewindow} (\I{} \A{id});
 \end{bgi}
 
-Closes the window whose identifier is \A{id}.
+Closes the window identified by \A{id}.
 
 % -----
 
 \begin{bgi}
-\I{} \func{edelay} (\I{} \A{millisec});
+\I{} \func{edelay} (\I{} \A{msec});
 \end{bgi}
 
-Waits for \A{millisec} milliseconds. In ``slow mode'', a screen
+Waits for \A{msec} milliseconds. In ``slow mode'', a screen
 refresh is performed. If an event occurs during the delay, this
-function returns 1, otherwise 0. Use \func{eventtype} to get the last
+function returns 1, otherwise 0. Use \func{eventtype()} to get the last
 event.
 
 % -----
@@ -1794,10 +1782,11 @@ event.
 \phantomsection\label{sec:event}
 
 \begin{bgi}
-\V{} \func{event} (\V{});
+\I{} \func{event} (\V{});
 \end{bgi}
 
-Returns 1 if an event (mouse click, key press, or \T{QUIT}) has occurred.
+Returns 1 if an event (mouse click, key press, or \T{SDL\_QUIT}) has
+occurred.
 
 % -----
 
@@ -1805,7 +1794,7 @@ Returns 1 if an event (mouse click, key press, or \T{QUIT}) has occurred.
 \phantomsection\label{sec:eventtype}
 
 \begin{bgi}
-\V{} \func{eventtype} (\V{});
+\I{} \func{eventtype} (\V{});
 \end{bgi}
 
 Returns the type of the last event; either \T{SDL\_KEYPRESS} or
@@ -1833,18 +1822,7 @@ in ARGB format.
 \I{} \func{getcurrentwindow} (\V{});
 \end{bgi}
 
-Returns the integer \A{id} of the current window.
-
-% -----
-
-\addcontentsline{toc}{subsection}{\texttt{getleftclick()}}
-\phantomsection\label{sec:getleftclick}
-
-\begin{bgi}
-\V{} \func{getleftclick} (\V{});
-\end{bgi}
-
-Waits for the left mouse button to be clicked and released.
+Returns the \A{id} of the current window.
 
 % -----
 
@@ -1860,6 +1838,17 @@ the code of the key, mouse button, or \T{QUIT}.
 
 % -----
 
+\addcontentsline{toc}{subsection}{\texttt{getleftclick()}}
+\phantomsection\label{sec:getleftclick}
+
+\begin{bgi}
+\V{} \func{getleftclick} (\V{});
+\end{bgi}
+
+Waits for the left mouse button to be clicked and released.
+
+% -----
+
 \addcontentsline{toc}{subsection}{\texttt{getlinebuffer()}}
 \phantomsection\label{sec:getlinebuffer}
 
@@ -1869,6 +1858,32 @@ the code of the key, mouse button, or \T{QUIT}.
 
 Copies the \A{y}-th screen line to \A{linebuffer}, which must be a
 \func{getmaxx()+1} array of \A{Uint32} in ARGB format.
+
+% -----
+
+\addcontentsline{toc}{subsection}{\texttt{getmaxheight()}}
+\phantomsection\label{sec:getmaxheight}
+
+\begin{bgi}
+\I{} \func{getmaxheight} (\V{});
+\end{bgi}
+
+Returns the maximum possible height for a new window (actual screen
+height in pixels). This function may be called before graphics
+initialisation.
+
+% -----
+
+\addcontentsline{toc}{subsection}{\texttt{getmaxwidth()}}
+\phantomsection\label{sec:getmaxwidth}
+
+\begin{bgi}
+\I{} \func{getmaxwidth} (\V{});
+\end{bgi}
+
+Returns the maximum possible width for a new window (actual screen
+width in pixels). This function may be called before graphics
+initialisation.
 
 % -----
 
@@ -1883,30 +1898,6 @@ Waits for the middle mouse button to be clicked and released.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{getmaxheight()}}
-\phantomsection\label{sec:getmaxheight}
-
-\begin{bgi}
-\I{} \func{getmaxheight} (\V{});
-\end{bgi}
-
-Returns the maximum possible height for a new window (actual screen
-height in pixels).
-
-% -----
-
-\addcontentsline{toc}{subsection}{\texttt{getmaxwidth()}}
-\phantomsection\label{sec:getmaxwidth}
-
-\begin{bgi}
-\I{} \func{getmaxwidth} (\V{});
-\end{bgi}
-
-Returns the maximum possible width for a new window (actual screen
-width in pixels).
-
-% -----
-
 \addcontentsline{toc}{subsection}{\texttt{getmouseclick()}}
 \phantomsection\label{sec:getmouseclick}
 
@@ -1914,7 +1905,7 @@ width in pixels).
 \V{} \func{getmouseclick} (\I{} \A{kind}, \I{}\A{*x}, \I{}\A{*y});
 \end{bgi}
 
-Sets the \A{x},\A{y} coordinates of the last \A{kind} button click
+Sets the \A{x}, \A{y} coordinates of the last \A{kind} button click
 expected by \func{ismouseclick()}.
 
 % -----
@@ -1950,10 +1941,10 @@ before graphics initialisation.
 \V{} \func{initpalette} (\V{});
 \end{bgi}
 
-Initialises the palette to the standard 16 colours. If the environment
-variable \T{SDL\_BGI\_PALET\-TE} equals \T{BGI}, the first 16 colours
-will use the same RGB values as Turbo C 2.01; otherwise, a brighter
-palette will be used.
+Initialises the BGI palette to the standard 16 colours. If the
+environment variable \T{SDL\_BGI\-\_PALET\-TE} equals \T{BGI}, the
+first 16 colours will use the same RGB values as Turbo C 2.01;
+otherwise, a brighter palette will be used.
 
 % -----
 
@@ -2055,7 +2046,7 @@ ARGB format. This function is faster than direct pixel manipulation.
 
 Reads a \F{.bmp} file and displays it immediately at (\A{x1}, \A{y1}).
 If (\A{x2}, \A{y2}) are not 0, the bitmap is stretched to fit the
-rectangle \A{x1},\A{y1}---\A{x2},\A{y2}; otherwise, the bitmap is
+rectangle \A{x1}, \A{y1}---\A{x2}, \A{y2}; otherwise, the bitmap is
 clipped as necessary.
 
 % -----
@@ -2096,7 +2087,7 @@ If either \A{x} or \A{y} is -1, the position parameters are ignored.
 \I{} \func{resizepalette} (\Ut{} \A{newsize});
 \end{bgi}
 
-Resizes the ARGB palette to \A{newsize}; returns 0 if successfull, 1
+Resizes the ARGB palette to \A{newsize}; returns 0 if successful, 1
 otherwise. The initial size of the ARGB palette is 4096.
 
 % -----
@@ -2170,7 +2161,7 @@ the ARGB palette.
 \end{bgi}
 
 Sets the blend mode to be used with screen refresh. \A{blendmode} can
-be \T{SDL\_BLENDMODE\_NONE} (default in ``slow mode'') or
+be \T{SDL\_BLENDMODE\-\_NONE} (default in ``slow mode'') or
 \T{SDL\_BLENDMODE\_BLEND}. The latter enables alpha blending.
 
 % -----
@@ -2182,7 +2173,7 @@ be \T{SDL\_BLENDMODE\_NONE} (default in ``slow mode'') or
 \V{} \func{setcurrentwindow} (\I{} \A{id});
 \end{bgi}
 
-Sets the current active window to \I{} \A{id}.
+Sets the current active window to \A{id}.
 
 % -----
 
@@ -2224,7 +2215,7 @@ argument.
 
 Sets the window title \A{title}, the initial position to (\A{x},
 \A{y}), and SDL2 flags OR'ed together. \A{x} and \A{y} can be set to
-\T{SDL\_WINDOWPOS\_CENTERED} or \T{SDL\_WINDOWPOS\_UNDEFINED}.
+\T{SDL\_WINDOWPOS\_CENTERED} or \T{SDL\_WINDOWPOS\_UNDEFI\-NED}.
 
 If \A{title} is an empty string, the window title is set to the
 default value \T{SDL\_bgi}.
@@ -2232,10 +2223,21 @@ default value \T{SDL\_bgi}.
 If either \A{x} or \A{y} is -1, the position parameters are ignored.
 
 If \A{flags} is -1, the parameter is ignored; otherwise, only the
-values \T{SDL\_WINDOW\_FULLSCREEN},
+values \T{SDL\_WINDOW\_FULL\-SCREEN},
 \T{SDL\_WIN\-DOW\_FULLSCREEN\_DESKTOP}, \T{SDL\_WINDOW\_SHOWN},
 \T{SDL\_WINDOW\_HIDDEN}, \T{SDL\_WINDOW\-\_BORDERLESS}, and
 \T{SDL\_WINDOW\_MINIMIZED} can be applied.
+
+% -----
+
+\addcontentsline{toc}{subsection}{\texttt{setwintitle()}}
+\phantomsection\label{sec:setwintitle}
+
+\begin{bgi}
+\V{} \func{setwintitle} (\I{id}, \C{}\A{title});
+\end{bgi}
+
+Sets the title of the window identified by \A{id}.
 
 % -----
 
@@ -2283,7 +2285,7 @@ Swaps the current active and the current visual graphics pages.
 \end{bgi}
 
 Writes a \F{.bmp} file from the screen rectangle defined by
-\A{left},\A{top}---\A{right},\A{bottom}.
+\A{left}, \A{top}---\A{right}, \A{bottom}.
 
 % -----
 

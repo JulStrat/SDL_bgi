@@ -3,7 +3,7 @@
  * To compile:
  * gcc -o life life.c -lSDL_bgi -lSDL2
  * 
- * Simple cellular automata, as described at
+ * Simple cellular automaton, as described at
  * http://mathworld.wolfram.com/ElementaryCellularAutomaton.html
  * 
  * By Guido Gonzato, May 2015.

@@ -8,7 +8,6 @@
 
 # Using `SDL_bgi`
 
-
 Although `SDL_bgi` is almost perfectly compatible with the original
 `GRAPHICS.H` by Borland, a few minor differences have been introduced.
 The original BGI library mainly targeted the VGA video display
@@ -17,10 +16,10 @@ colours. `SDL_bgi` uses modern graphics capabilities provided by
 `SDL2`, while retaining backwards compatibility as much as possible.
 
 
-## Compiling programs
+## Compiling Programs
 
-To compile a C or C++ program on GNU/Linux or macOS you can use the
-`gcc` or `clang` compiler:
+To compile a C or C++ program on GNU/Linux, macOS or Raspios you can
+use the `gcc` or `clang` compiler:
 
     $ gcc -o program program.c -lSDL_bgi -lSDL2
 
@@ -31,8 +30,8 @@ To compile a program in MSYS2 + mingw-w64:
 
 The `-mwindows` switch creates a window-only program, i.e. a terminal
 is not started. **Beware:** functions provided by `stdio.h` will not
-work if you don't start a terminal. Your program will have to rely on
-mouse input only!
+work if you don't start a terminal; your program will have to rely on
+mouse input only.
 
 Code::Blocks users should read the file `howto_CodeBlocks.md`.
 
@@ -45,7 +44,7 @@ Windows users **must** declare the `main()` function as:
 even if `argc` and `argv` are not going to be used. Your program will
 not compile if you use a different `main()` definition (i.e. `int main
 (void)`), because of conflict with the `WinMain()` definition. It's an
-SDL2 issue; please consult <https://wiki.libsdl.org/FAQWindows> for
+SDL2 feature; please consult <https://wiki.libsdl.org/FAQWindows> for
 details.
 
 Most old programs that use the original BGI library should compile
@@ -88,7 +87,8 @@ where `<mode>` can be one of the following:
     SDL_1366x768    1366x768
     SDL_FULLSCREEN  fullscreen
 
-You may want to use `initwindow(int width, int height)` instead.
+More less common resolutions are listed in `SDL_bgi.h`. You may want
+to use `initwindow(int width, int height)` instead.
 
 `SDL_bgi.h` defines the `_SDL_BGI_H` constant. You can check for its
 presence and write programs that employ `SDL_bgi` extensions; please
@@ -145,8 +145,7 @@ This is possibly the slowest `SDL_bgi` code one could write:
 This code, which plots pixels until an event occurs (mouse click or
 key press), is extremely inefficient. First of all, calling `event()`
 is relatively expensive; secondly, refreshing the screen after
-plotting a single pixel is insane. You should write something like
-this:
+plotting a single pixel is insane. You should write code like this:
 
     counter = 0;
     stop = 0;
@@ -172,7 +171,8 @@ Please see the accompanying document `compatibility`.
 ## Colours
 
 `SDL_bgi` has two colour palettes: one for compatibility with old BGI,
-the other for ARGB colours.
+the other for ARGB colours. Colour depth is always 32 bit; `SDL_bgi`
+has not been tested on lesser colour depths.
 
 The default BGI palette includes 16 named colours (`BLACK`...`WHITE`);
 standard BGI functions, like `setcolor()` or `setbkcolor()`, use this
@@ -183,8 +183,11 @@ if the environment variable `SDL_BGI_PALETTE` is set to `BGI`.
 
 An extended ARGB palette of `PALETTE_SIZE` additional colours can
 be used by functions like `setrgbcolor()` or `setbkrgbcolor()`
-described below; please note the `rgb` in the function names. Please
-see the example programs in the `test/` directory.
+described below; please note the `rgb` in the function names.
+`PALETTE_SIZE` is 4096 by default, but it can be increased using
+`resizepalette()`.
+
+Please see the example programs in the `test/` directory.
 
 
 ## Fonts
@@ -252,8 +255,8 @@ it may not work on some graphics cards.
 ### Multiple Windows Functions
 
 Subsequent calls to `initgraph()` or `initwindow()` make it possible
-to open several windows; only one of them is active (= being drawn on)
-at any given time, regardless of mouse focus.
+to open several windows; only one of them is active (i.e. being drawn
+on) at any given time, regardless of mouse focus.
 
 Functions `setvisualpage()` and `setactivepage()` only work properly
 in single window mode.
@@ -379,12 +382,15 @@ needed).
 int bottom)` writes a `.bmp` file from the screen rectangle defined by
 (left,top--right,bottom).
 
+- `void kbhit(void)` returns 1 when a key is pressed, excluding
+Shift, Alt, etc.
+
+
 - `void xkbhit(void)` returns 1 when any key is pressed, including
 Shift, Alt, etc.
 
 
-The Real Thing
---------------
+## The Real Thing
 
 You may want to try the online Borland Turbo C 2.01 emulator at the
 Internet Archive:
@@ -396,15 +402,9 @@ library. You can download it and compile it using `SDL_bgi`; in
 Windows, you will have to change its `main()` definition.
 
 
-Bugs & Issues
--------------
+## Bugs & Issues
 
-In GNU/Linux, there may be visualisation problems on NVIDIA GK208BM
-(GeForce 920M) with `nvidia-driver-440`. As far as I can say, this
-is an NVIDIA driver problem.
-
-Console routines such as `getch()` may hang or not work properly in
-MSYS2. This is a problem in Mingw/MSYS2 console handling.
+Please see the accompanying document `BUGS`.
 
 Probably, this documentation is not 100% accurate. Your feedback is
 more than welcome.

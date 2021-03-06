@@ -25,25 +25,26 @@ library.
 
 Compatibility with the original `GRAPHICS.H` is nearly perfect, but
 100% compatibility with old programs written for Turbo C or Borland
-C++ is simply *impossible*. By design, Borland compilers were tied to
-the PC/DOS platform, and implemented low-level details such as
-hardware key codes, memory models, DOS and BIOS calls, online
-assembly, and so on. Besides, different graphic drivers were not fully
-compatible with one another. For example, programs written for the
-`IBM8514.BGI` driver needed modifications to compile and run on the
-`EGAVGA.BGI` driver.
+C++ is simply *impossible* to attain. By design, Borland compilers
+were not portable; they were specifically designed for the PC/DOS
+platform. Hence, they implemented low-level details such as hardware
+key codes, memory models, DOS and BIOS calls, online assembly, and so
+on. Besides, even in the original Turbo C / Borland C++ different
+graphic drivers were not fully compatible with one another. For
+example, programs written for the `IBM8514.BGI` driver needed
+modifications to compile and run on the `EGAVGA.BGI` driver.
 
 Full compatibility is only possible in a hardware emulator like
-DOSBox.  If a program uses `CONIO.H`, `DOS.H`, `BIOS.H` and the like,
+DOSBox. If a program uses `CONIO.H`, `DOS.H`, `BIOS.H` and the like,
 chances are you won't be able to compile it. Please consider using
-DOSBox and one of the original Borland compilers that available as
+DOSBox and one of the original Borland compilers that are available as
 freeware.
 
 That said, `SDL_bgi` is almost perfectly compatible with the original
 `GRAPHICS.H`. It has been tested on the original `BGIDEMO.C` included
 in Turbo C 2.01 and Borland C++ 1.01, and on the sample programs
 [available here](http://winbgim.codecutter.org/V6_0/doc). These sample
-programs were copied from the Borland C Library Reference.
+programs were copied from the original Borland C Library Reference.
 
 Nearly all functions are correctly implemented and work just like in
 old BGI; in most cases, output is pixel-perfect.
@@ -56,7 +57,8 @@ releases of `SDL_bgi`.
 
 - colour names with `CGA_` and `EGA_` prefix have the same value as
 standard colours. For example, the `EGA_BROWN` constant is 6, like
-`BROWN`, instead of 20 as in Turbo C or Borland C++;
+`BROWN`, instead of 20 as in Turbo C or Borland C++. This difference
+should be irrelevant;
 
 - these functions may be called, but have no effect:
 
@@ -82,14 +84,14 @@ errorcode = registerbgidriver(EGAVGA_driver);
 you must add `-D EGAVGA_driver` to the `gcc` command line. You'll get
 a compiler warning, but the program will compile and run.
 
-- the `colors` member of `struct palette` is defined as `Uint32`
-instead of `signed char`, because colours are implemented as ARGB in
-`SDL_bgi`:
+- the `size` and `colors` members of `struct palette` are defined as
+`Uint32` instead of `char`, because colours are implemented as
+ARGB integers in `SDL_bgi`:
 
 ````
 struct palettetype {
-  unsigned char size;
-  Uint32 colors[MAXCOLORS + 1];
+  Uint32 size;                   // unsigned char in Turbo C / Borland C++
+  Uint32 colors[MAXCOLORS + 1];  // signed char in Turbo C / Borland C++
 };
 ````
 
@@ -103,8 +105,9 @@ behaviour as in old Turbo C;
 
 - `setusercharsize()` also works with `DEFAULT_FONT`;
 
-- `setrgbpalette()` works on the extended ARGB palette. To change
-colours in the default palette, use `setpalette()` like this:
+- `setrgbpalette()` works on the extended ARGB palette. To change the
+RGB components of colours in the default palette, use `setpalette()`
+like this:
 
 ````
 setpalette (RED, COLOR (0xa0, 0x10, 0x10));

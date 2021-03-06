@@ -77,7 +77,7 @@ void `getpalette` (struct palettetype \*palette);
 
 int `getpalettesize` (void);
 
-unsigned `int` getpixel (int x, int y);
+unsigned int `getpixel` (int x, int y);
 
 void `gettextsettings` (struct textsettingstype \*texttypeinfo);
 
@@ -121,7 +121,7 @@ void `outtextxy` (int x, int y, char \*textstring);
 
 void `pieslice` (int x, int y, int stangle, int endangle, int radius);
 
-void `putimage` (int, int, void \*, int);
+void `putimage` (int left, int top, void \*bitmap, int op);
 
 void `putpixel` (int x, int y, int color); 
 
@@ -207,13 +207,19 @@ int `event` (void);
 
 int `eventtype` (void);
 
-void `getbuffer` (Uint32 *);
+void `getbuffer` (Uint32 \*buffer);
 
 int `getcurrentwindow` (void);
 
+int `getevent` (void);
+
 void `getleftclick` (void);
 
-int `getevent` (void);
+void `getlinebuffer` (int y, Uint32 \*linebuffer);
+
+int `getmaxheight` (void);
+
+int `getmaxwidth` (void);
 
 void `getmiddleclick` (void);
 
@@ -229,13 +235,15 @@ int `initwindow` (int width, int height);
 
 int `ismouseclick` (int kind);
 
-int `mouseclick`(void);
+int `mouseclick` (void);
 
 int `mousex` (void);
 
 int `mousey` (void);
 
-void `putbuffer` (Uint32 \*);
+void `putbuffer` (Uint32 \*buffer);
+
+void `putlinebuffer` (int y, Uint32 \*buffer);
 
 void `readimagefile` (char \*filename, int x1, int y1, int x2, int y2);
 

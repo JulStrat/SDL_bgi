@@ -7,16 +7,13 @@ This directory contains a few simple programs that show how to use
 some features of `SDL_bgi`; type `make` to compile them.
 
 You may want to compile the original `bgidemo.c` program by Borland.
-It's not free software but it can be downloaded from several sources;
+It's not free software, but it can be downloaded from several sources;
 type `make bgidemo` to download it and compile it. You need the `wget`
 tool in the $PATH.
 
 `bgidemo` fails to build on MSYS2 because of its wrong `main()`
 declaration; the Makefiles changes `int main()` to `int main(int argc,
 char *argv[])`.
-
-Original `.CHR` fonts are available here:
-<https://github.com/ananay/turboc/tree/master/TC/BGI>
 
 There may be compiler warnings using gcc releases newer than 7, as in
 Ubuntu 20.
@@ -45,10 +42,9 @@ the (horribly slow) GNU libgraph.
 
 - `floodfilltest.c` shows the speed of the new `floodfill()` routine.
 
-- `fonts.c` shows the new Hershey-based vector fonts. If `.CHR` fonts
-are available in the same directory, they will be used instead of the
-Hershey fonts. This is an experimental feature that works in GNU/Linux
-only.
+- `fonts.c` shows the new vector fonts. If `.CHR` fonts are available
+in the same directory, they will be used instead of the corresponding
+internal fonts.
 
 - `hopalong.c` is an implementation of Barry Martin's algorithm,
 presented in the September 1986 issue of Scientific American. Run it
@@ -62,6 +58,10 @@ fade away effect.
 `./life [number]`, where `[number]` is the initial percentage of living
 cells.
 
+- `linebuffers.c` shows how to use `getlinebuffer()` and
+`putlinebuffer()` to draw pixel-based stuff on the screen. Using
+buffers (i.e. arrays) is much faster than using `putpixel()`.
+
 - `mandelbrot.c` is a simple, non-optimised program to display the
 Mandelbrot set, <https://en.wikipedia.org/wiki/Mandelbrot_set>. It
 shows how to setup and use RGB colour mode. Press '1', '2', '3' to
@@ -72,17 +72,18 @@ initial boundary.
 - `mousetest.c` shows how to detect and use mouse clicks. Click around
 using all buttons and mouse wheel.
 
-- `plasma.c` writes the window contents to a .bmp file.
+- `multiwin.c` shows how to open multiple windows.
+
+- `plasma.c` writes the window contents to a `.bmp` file.
 
 - `psychedelia.c` sets up an RGB palette and produces a plasma effect,
-using either putpixel() or putbuffer(); left click to switch.
-Algorithm is described at <https://lodev.org/cgtutor/plasma.html>.
-
-- `scrolltext.c` shows how to use `getlinebuffer()` and
-`putlinebuffer()`, which are faster than `getpixel()` and
-`putpixel()`.
+using either putpixel() or putbuffer(); left click to switch. The
+algorithm is described at <https://lodev.org/cgtutor/plasma.html>.
 
 - `sdlbgidemo.c` shows how to use some of `SDL_bgi`'s features.
+
+- `setpalette.c` shows how to redefine the 16-colour palette and
+restore it.
 
 - `simple.c` displays simple shapes to test `SDL_bgi`'s speed.
 **Note**: this programs hangs in Mingw, because of a bug in its

@@ -77,18 +77,18 @@ int main (int argc, char *argv[])
   getevent ();
   outtextxy (0, 20, "Shutting down...");
   
-  /*
-  closegraph ();
-  return 0;
-   */
-  
-  delay (1000);
+  setwintitle (win3, "Window 3 is shutting down...");
+  delay (2000);
   printf ("Shutting down window %d\n", win3);
   closewindow (win3);
-  delay (1000);
+  
+  setwintitle (win2, "Window 2 is shutting down...");
+  delay (2000);
   printf ("Shutting down window %d\n", win2);
   closewindow (win2);
-  delay (1000);
+  
+  setwintitle (win1, "Window 1 is shutting down...");
+  delay (2000);
   printf ("Shutting down window %d\n", win1);
   closewindow (win1);
   

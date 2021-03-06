@@ -35,6 +35,9 @@ int main (int argc, char *argv[])
     winid,
     x, y,
     stop = 0;
+
+  // physical screen size, regardless of window dimensions
+  getscreensize (&x, &y);
   
   setwinoptions ("", SDL_WINDOWPOS_CENTERED,
 		 SDL_WINDOWPOS_CENTERED, SDL_WINDOW_BORDERLESS);
@@ -42,10 +45,7 @@ int main (int argc, char *argv[])
   setbkcolor (BLACK);
   cleardevice ();
   winid = getcurrentwindow ();
-  
-  // physical screen size, regardless of window dimensions
-  getscreensize (&x, &y);
-  
+
   // make the window opaque
   SDL_SetWindowOpacity (bgi_window, 1.0);
   setcolor (RED);
@@ -63,7 +63,7 @@ int main (int argc, char *argv[])
     // make the window transparent (disappear)
     SDL_SetWindowOpacity (bgi_window, 0.0);
     refresh ();
-    stop = edelay (random (500));
+    stop = edelay (random (1500));
     
     // opaque again - reappear
     resetwinoptions (winid, "", random (x), random (y));

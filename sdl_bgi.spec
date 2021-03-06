@@ -1,10 +1,10 @@
-# sdl_bgi.spec - tested on Fedora 31
+# sdl_bgi.spec - tested on Fedora 32
 
 %global debug_package %{nil} 
 
-Summary:       Multiplatform, SDL2-based 'graphics.h' implementation
+Summary:       SDL2-based 'GRAPHICS.H' implementation
 Name:          SDL_bgi
-Version:       2.4.2
+Version:       2.4.3
 Release:       1
 License:       ZLib
 Group:         Libraries
@@ -14,13 +14,13 @@ BuildRequires: SDL2-devel
 Prefix:        %{_prefix}
 BuildRoot:     %{_tmppath}/%{name}-%{version}-buildroot
 
-%description 
-SDL_bgi is a Borland Graphics Interface (BGI, aka 'graphics.h')
-emulation library based on SDL2. This library strictly emulates BGI
-functions, making it possible to compile SDL2 versions of programs
-written for Turbo C/Borland C. ARGB colours, vector fonts, mouse
-support, and multiple windows are also implemented; further, native
-SDL2 functions may be used in SDL_bgi programs.
+%description
+SDL_bgi is a Borland Graphics Interface ('GRAPHICS.H') implementation
+based on SDL2. This library strictly emulates BGI functions, making it
+possible to compile SDL2 versions of programs written for Turbo
+C/Borland C++. ARGB colours, vector fonts, mouse support, and multiple
+windows are also implemented; further, native SDL2 functions may be
+used in SDL_bgi programs.
 
 %prep
 %setup -q -n %{name}-%{version}
@@ -35,9 +35,12 @@ cd src
 mkdir -p $RPM_BUILD_ROOT/%{_libdir}
 mkdir -p $RPM_BUILD_ROOT/%{_includedir}
 mkdir -p $RPM_BUILD_ROOT/%{_includedir}/SDL2/
+mkdir -p $RPM_BUILD_ROOT/%{_mandir}/man3/
 /usr/bin/install -m 644 graphics.h $RPM_BUILD_ROOT/%{_includedir}
 /usr/bin/install -m 644 SDL_bgi.h  $RPM_BUILD_ROOT/%{_includedir}/SDL2/
 /usr/bin/install -m 644 lib%{name}.so $RPM_BUILD_ROOT/%{_libdir}
+cd ../doc/
+/usr/bin/install -m 644 graphics.3.gz  $RPM_BUILD_ROOT/%{_mandir}/man3/
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -45,11 +48,12 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %defattr(644,root,root,755)
 %doc AUTHORS BUGS ChangeLog doc/ INSTALL_Linux.md INSTALL_macOS.md
-%doc INSTALL_Windows.md LICENSE LICENSE_fonts README.md
+%doc INSTALL_Windows.md LICENSE README.md
 %doc sdl_bgi.spec test/ TODO VERSION
 %attr(644,root,root) %{_libdir}/lib%{name}.so
 %attr(644,root,root) %{_includedir}/SDL2/SDL_bgi.h
 %attr(644,root,root) %{_includedir}/graphics.h
+%attr(644,root,root) %{_mandir}/man3/graphics.3.gz
 
 %changelog
 * Tue Jan 2 2018 Guido Gonzato <guido.gonzato at gmail.com>

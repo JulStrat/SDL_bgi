@@ -1,11 +1,11 @@
 # CMakeLists.txt for SDL_bgi 
-# GG, 2020-07-08
+# GG, 2021-02-24
 
 # --- Building, thanks to cmake
 
 cmake_minimum_required (VERSION 3.5.0)
 
-set (SDL_BGI_VERSION 2.4.2)
+set (SDL_BGI_VERSION 2.4.3)
 
 # Project name
 project (SDL_bgi VERSION ${SDL_BGI_VERSION} LANGUAGES C)
@@ -56,6 +56,10 @@ install (FILES AUTHORS BUGS ChangeLog INSTALL_Linux.md INSTALL_macOS.md
 file (GLOB docs doc/*)
 install (FILES ${docs} DESTINATION ${CMAKE_INSTALL_DOCDIR}/doc)
 
+# Install man page
+file (GLOB man doc/graphics.3.gz)
+install (FILES ${man} DESTINATION ${CMAKE_INSTALL_MANDIR}/man3)
+
 # Install test programs
 file (GLOB test test/*)
 install (FILES ${test} DESTINATION ${CMAKE_INSTALL_DOCDIR}/test)
@@ -80,14 +84,14 @@ set (CPACK_DEBIAN_PACKAGE_NAME "sdl_bgi")
 set (CPACK_DEBIAN_PACKAGE_VERSION ${CPACK_PACKAGE_VERSION})
 set (CPACK_DEBIAN_PACKAGE_ARCHITECTURE ${ARCH_DEB})
 set (CPACK_DEBIAN_PACKAGE_MAINTAINER ${CONTACT})
-set (CPACK_DEBIAN_PACKAGE_DESCRIPTION "BGI-compatible, SDL2-based library")
+set (CPACK_DEBIAN_PACKAGE_DESCRIPTION "SDL2-based 'GRAPHICS.H' implementation")
 set (CPACK_DEBIAN_PACKAGE_SECTION "libs")
 set (CPACK_DEBIAN_COMPRESSION_TYPE "gzip")
 set (CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
 set (CPACK_DEBIAN_PACKAGE_DEPENDS "libsdl2-dev (>= 2.0.0)")
 
 # RPM (Fedora) package
-set (CPACK_RPM_PACKAGE_SUMMARY "BGI-compatible, SDL2-based library")
+set (CPACK_RPM_PACKAGE_SUMMARY "SDL2-based 'GRAPHICS.H' implementation")
 set (CPACK_RPM_PACKAGE_NAME ${CPACK_PACKAGE_NAME})
 set (CPACK_PACKAGE_VERSION  ${CPACK_PACKAGE_VERSION})
 set (CPACK_PACKAGE_ARCHITECTURE ${ARCH_RPM})
@@ -95,7 +99,8 @@ set (CPACK_RPM_PACKAGE_RELEASE "1")
 set (CPACK_RPM_PACKAGE_LICENSE "zlib")
 set (CPACK_RPM_PACKAGE_GROUP "Development/Libraries")
 set (CPACK_RPM_PACKAGE_VENDOR "GG")
-set (CPACK_RPM_PACKAGE_DESCRIPTION "SDL_bgi is a Borland Graphics Interface (BGI) emulation library based on SDL2. This library strictly emulates most BGI functions, making it possible to compile SDL versions of programs written for Turbo/Borland C. ARGB extensions and basic mouse support are also implemented; further, native SDL2 functions may be used in SDL_bgi programs.")
+set (CPACK_RPM_PACKAGE_DESCRIPTION "SDL_bgi is a Borland Graphics Interface ('GRAPHICS.H') implementation based on SDL2. This library strictly emulates BGI functions, making it possible to compile SDL2 versions of programs written for Turbo C/Borland C++. ARGB colours, vector fonts, mouse support, and multiple
+windows are also implemented; further, native SDL2 functions may be used in SDL_bgi programs.")
 set (CPACK_RPM_PACKAGE_REQUIRES "SDL2-devel >= 2.0.0")
 set (CPACK_PACKAGE_CONTACT ${CONTACT})
 

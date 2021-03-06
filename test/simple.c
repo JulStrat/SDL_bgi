@@ -120,16 +120,16 @@ void pixels (void)
       putpixel (random(maxx), random(maxy), col);
     }
     refresh ();
-    delay (1000);
+    stop = pause (1000);
+    if (stop)
+      break;
     srand (2015);
     for (i = 0; i < 300; i++) {
       col = 1 + random (MAXCOLORS); /* keep random () in sync */
       putpixel (random(maxx), random(maxy), BLACK);
-      if (kbhit ())
-	stop = 1;
     }
     refresh ();
-    delay (1000);
+    stop = pause (1000);
     cleardevice ();
   } // while
  

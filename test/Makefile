@@ -20,8 +20,8 @@ LIBS = -lSDL_bgi -lSDL2
 endif
 
 # Latest MSYS2 + Mingw-w64
-msys := $(findstring MSYS, $(PLATFORM))
-ifeq ($(msys),MSYS)
+msys := $(findstring _NT, $(PLATFORM))
+ifeq ($(msys),_NT)
 CFLAGS = -std=gnu99 -O2 -g -I. -I/mingw64/include -I/mingw64/include/SDL
 # -mconsole = open a console alongside the program
 # -mwindows = Windows-only program (no console)
@@ -103,7 +103,7 @@ psychedelia: psychedelia.c
 	$(CC) $(CFLAGS) -o psychedelia psychedelia.c $(LIBS) -lm
 
 sdlbgidemo: sdlbgidemo.c 
-	$(CC) $(CFLAGS) -I. -o sdlbgidemo sdlbgidemo.c $(LIBS) -lm
+	$(CC) $(CFLAGS) -o sdlbgidemo sdlbgidemo.c $(LIBS) -lm
 
 setpalette: setpalette.c 
 	$(CC) $(CFLAGS) -o setpalette setpalette.c $(LIBS)
