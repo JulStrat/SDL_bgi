@@ -12,6 +12,7 @@ FONTS   = bold.h euro.h goth.h lcom.h \
 	  trip.h tscr.h
 
 # Detect the platform: GNU/Linux, macOS, or MSYS2
+# unfortunately, macOS doesn't support 'uname -o'
 PLATFORM := $(shell uname -s)
 
 # GNU/Linux
@@ -37,8 +38,8 @@ STRIP   = strip -x
 endif
 
 # MSYS2
-msys := $(findstring MSYS, $(PLATFORM))
-ifeq ($(msys),MSYS)
+msys := $(findstring _NT, $(PLATFORM))
+ifeq ($(msys),_NT)
 PLATFORM = MSYS
 INC_DIR = /mingw64/include
 SDL_INC = $(INC_DIR)/SDL2
@@ -49,8 +50,8 @@ PIC     =
 STRIP   = strip
 endif
 
-# $(info *** Building on $(PLATFORM) ***)
-# $(info )
+$(info *** Building on $(PLATFORM) ***)
+$(info )
 
 # C compiler: tested with gcc and clang
 CC = gcc

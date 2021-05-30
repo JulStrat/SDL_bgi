@@ -4,7 +4,7 @@
 
 Summary:       SDL2-based 'GRAPHICS.H' implementation
 Name:          SDL_bgi
-Version:       2.4.3
+Version:       2.4.4
 Release:       1
 License:       ZLib
 Group:         Libraries

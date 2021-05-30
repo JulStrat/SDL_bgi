@@ -7,13 +7,13 @@
 // By Guido Gonzato, PhD
 // Automatic refresh patch, CHR font support:
 // Marco Diego Aurélio Mesquita
-// November 5, 2020
+// Latest update: May 4, 2021
 
 // ZLib License
 
 /*
 
-Copyright (c) 2014-2020 Guido Gonzato, PhD
+Copyright (c) 2014-2021 Guido Gonzato, PhD
 
 This software is provided 'as-is', without any express or implied
 warranty. In no event will the authors be held liable for any damages
@@ -536,6 +536,7 @@ static void line_or          (int, int, int, int);
 static void line_not         (int, int, int, int);
 static void line_fill        (int, int, int, int);
 static void _floodfill       (int, int, int);
+static void _setcolor        (int);
 
 static void line_fast        (int, int, int, int);
 static void updaterect       (int, int, int, int);
@@ -617,7 +618,7 @@ static struct font *decode (FILE *fp)
   /* Now we scan the file until we find 0x1a */
   while (!feof(fp)) {
     char c = fgetc(fp);
-    // TODO: add checks for *alloc
+    // TODO: add checks for *realloc
     fontinfo = (char*)realloc(fontinfo, fontinfolen+1);
     if (c == 0x1a){
       fontinfo[fontinfolen] = '\0';
@@ -1026,7 +1027,7 @@ void bar (int left, int top, int right, int bottom)
   else // all other styles
     tmpcolor = bgi_fill_style.color;
 
-  setcolor (tmpcolor);
+  _setcolor (tmpcolor);
   tmpthickness = bgi_line_style.thickness;
   bgi_line_style.thickness = NORM_WIDTH;
 
@@ -1037,7 +1038,7 @@ void bar (int left, int top, int right, int bottom)
     for (y = top; y <= bottom; y++)
       line_fill (left, y, right, y);
 
-  setcolor (tmp);
+  _setcolor (tmp);
   bgi_line_style.thickness = tmpthickness;
 
   update ();
@@ -1066,9 +1067,9 @@ void bar3d (int left, int top, int right,
   else // all other styles
     tmpcolor = bgi_fill_style.color;
 
-  setcolor (tmpcolor); // fill
+  _setcolor (tmpcolor); // fill
   bar (left, top, right, bottom);
-  setcolor (tmp); // outline
+  _setcolor (tmp); // outline
   if (depth > 0) {
     if (topflag) {
       line_fast (left, top, left + depth, top - depth + 4);
@@ -1539,7 +1540,7 @@ void fillpoly (int numpoints, int *polypoints)
   else // all other styles
     tmpcolor = bgi_fill_style.color;
 
-  setcolor (tmpcolor);
+  _setcolor (tmpcolor);
 
   // find Y maxima
 
@@ -1586,7 +1587,7 @@ void fillpoly (int numpoints, int *polypoints)
 
   } //   for pixelY
 
-  setcolor (tmp);
+  _setcolor (tmp);
   drawpoly (numpoints, polypoints);
 
   update ();
@@ -1767,7 +1768,6 @@ void _floodfill (int x, int y, int border)
 
 void floodfill (int x, int y, int border)
 {
-
   // Fills an enclosed area with colour.
 
   check_initgraph ();
@@ -1775,7 +1775,6 @@ void floodfill (int x, int y, int border)
   unsigned int
     oldcol;
   int
-    found,
     tmp_pattern,
     tmp_color;
 
@@ -1797,30 +1796,39 @@ void floodfill (int x, int y, int border)
     _floodfill (x, y, border);
     return;
   }
+  
   else { // fill patterns
+    
     if (bgi_bg_color == oldcol) {
-      // solid fill first...
+      
+      // solid fill first, then pattern fill on top of it
       tmp_pattern = bgi_fill_style.pattern;
       bgi_fill_style.pattern = SOLID_FILL;
       tmp_color = bgi_fill_style.color;
-      // find a suitable temporary fill colour; it must be different
-      // than the border and the background
-      found = SDL_FALSE;
-      while (!found) {
-        bgi_fill_style.color = BLUE + random (WHITE);
-        if (oldcol != bgi_fill_style.color &&
-            border != bgi_fill_style.color)
-          found = SDL_TRUE;
+      
+      // find a suitable temporary fill colour; it must be
+      // different from the border, the background,
+      // and the former fill colour
+      for (int i = BLACK; i < MAXCOLORS + 1; i++) {
+	bgi_fill_style.color = i;
+	if (oldcol != bgi_fill_style.color && 
+	    border != bgi_fill_style.color &&
+	    tmp_color != bgi_fill_style.color)
+	  break;
       }
+      
+      // solid fill...
       _floodfill (x, y, border);
+      
       // ...then pattern fill
       bgi_fill_style.pattern = tmp_pattern;
       bgi_fill_style.color = tmp_color;
       _floodfill (x, y, border);
-    }
+    } // if
     else
       _floodfill (x, y, border);
-  }
+
+  } // else
 
   update ();
 
@@ -3151,7 +3159,7 @@ static void _bar (int left, int top, int right, int bottom)
   for (y = top; y <= bottom; y++)
     line_fast (left, y, right, y);
 
-  setcolor (tmp);
+  _setcolor (tmp);
 
 } // _bar ()
 
@@ -3169,7 +3177,7 @@ static void drawchar_bitmap (unsigned char ch)
 
   tmp = bgi_bg_color;
   bgi_bg_color = bgi_fg_color; // for bar ()
-  setcolor (bgi_bg_color);
+  _setcolor (bgi_bg_color);
 
   // for each of the 8 bytes that make up the font
 
@@ -3488,6 +3496,7 @@ void pieslice (int x, int y, int stangle, int endangle, int radius)
   line_fast (x, y, bgi_last_arc.xend, bgi_last_arc.yend);
 
   angle = (stangle + endangle) / 2;
+  
   // !!! FIXME: what if we're trying to fill an already filled pieslice?
   floodfill (x + (radius * cos (angle * PI_CONV)) / 2,
              y - (radius * sin (angle * PI_CONV)) / 2,
@@ -3786,7 +3795,7 @@ void sector (int x, int y, int stangle, int endangle,
   line_fast (x, y, bgi_last_arc.xend, bgi_last_arc.yend);
 
   tmpcolor = bgi_fg_color;
-  setcolor (bgi_fill_style.color);
+  _setcolor (bgi_fill_style.color);
   angle = (stangle + endangle) / 2;
   // find a point within the sector
   // !!! FIXME: what if we're trying to fill an already filled sector?
@@ -3865,18 +3874,41 @@ void setbkcolor (int col)
 
 // -----
 
-void setcolor (int col)
+void _setcolor (int col)
 {
   // Sets the current drawing color using the default palette.
 
   check_initgraph ();
 
-  // COLOR () set the ARGB_FG_COL colour
+  // COLOR () set the ARGB_FG_COL colour 
   if (-1 == col) {
     bgi_fg_color = ARGB_FG_COL;
     bgi_argb_palette[ARGB_FG_COL] = bgi_argb_palette[ARGB_TMP_COL];
   }
   else {
+    bgi_argb_mode = SDL_FALSE;
+    bgi_fg_color = col;
+  }
+
+} // setcolor ()
+
+// -----
+
+void setcolor (int col)
+{
+  // Sets the current drawing color using the default palette.
+  // If 'col' > MAXCOLORS, then use MAXCOLORS % col.
+
+  check_initgraph ();
+
+  // COLOR () set the ARGB_FG_COL colour 
+  if (-1 == col) {
+    bgi_fg_color = ARGB_FG_COL;
+    bgi_argb_palette[ARGB_FG_COL] = bgi_argb_palette[ARGB_TMP_COL];
+  }
+  else {
+    if (col > MAXCOLORS)
+      col %= MAXCOLORS;
     bgi_argb_mode = SDL_FALSE;
     bgi_fg_color = col;
   }
@@ -4674,11 +4706,15 @@ void getscreensize (int *x, int *y)
 {
   // Reports the screen size, regardless of the window dimensions.
 
-  check_initgraph ();
+  if (SDL_Init (SDL_INIT_VIDEO) != 0) {
+    SDL_Log ("SDL_Init() failed: %s", SDL_GetError ());
+    showerrorbox ("SDL_Init() failed");
+    exit (1);
+  }
 
-    SDL_DisplayMode mode =
+  SDL_DisplayMode mode =
   { SDL_PIXELFORMAT_UNKNOWN, 0, 0, 0, 0 };
-
+  
   if (SDL_GetDisplayMode (0, 0, &mode) != 0) {
     SDL_Log ("SDL_GetDisplayMode() failed: %s", SDL_GetError ());
     showerrorbox ("SDL_GetDisplayMode() failed");
@@ -4774,12 +4810,15 @@ void initwindow (int width, int height)
     return;
   }
 
+  // TODO: what if width or height exceed the screen 
+  // physical dimensions?
+  
   // take note of window size
   bgi_maxx = width - 1;
   bgi_maxy = height - 1;
 
-  if (SDL_FALSE == bgi_fast_mode) {  // called by initgraph ()
-    if (!width || !height) {         // fullscreen
+  if (SDL_FALSE == bgi_fast_mode) {   // called by initgraph ()
+    if (0 == width || 0 == height) {  // fullscreen
       bgi_maxx = mode.w - 1;
       bgi_maxy = mode.h - 1;
       bgi_window_flags = bgi_window_flags | SDL_WINDOW_FULLSCREEN_DESKTOP;
@@ -5462,6 +5501,21 @@ void setwinoptions (char *title, int x, int y, Uint32 flags)
       bgi_window_flags = flags;
 
 } // setwinoptions ()
+
+// -----
+
+void setwintitle (int id, char *title)
+{
+  // Sets the window title.
+
+  if (strlen (title) > BGI_WINTITLE_LEN) {
+    fprintf (stderr, "BGI window title name too long.\n");
+    showerrorbox ("BGI window title name too long.");
+  }
+  else
+    SDL_SetWindowTitle (bgi_win[id], title);
+
+} // setwintitle ()
 
 // -----
 

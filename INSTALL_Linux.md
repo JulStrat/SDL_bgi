@@ -19,7 +19,7 @@ you'll also need `make` and a C compiler; `gcc` or `clang` are fine.
 
 To compile and install `SDL_bgi`, run the following commands:
 
-    $ VERSION=2.4.3
+    $ VERSION=2.4.4
     $ tar zxvf SDL_bgi-$VERSION.tar.gz
     $ cd SDL_bgi-$VERSION/src
     $ make
@@ -38,7 +38,7 @@ This only works if `cmake` and `cpack` are installed.
 
 To compile the `SDL_bgi` library and make `.deb` or `.rpm` packages:
 
-    $ VERSION=2.4.3
+    $ VERSION=2.4.4
     $ tar zxvf SDL_bgi-$VERSION.tar.gz
     $ cd SDL_bgi-$VERSION
     $ ./build.sh

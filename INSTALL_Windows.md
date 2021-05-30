@@ -78,7 +78,7 @@ install `make`, `mingw-w64-x86_64-SDL2`, and `mingw-w64-x86_64-gcc`.
 
 Start the MSYS2 shell, then run the following commands:
 
-    $ VERSION=2.4.3
+    $ VERSION=2.4.4
     $ tar zxvf SDL_bgi-$VERSION.tar.gz
     $ cd SDL_bgi-$VERSION/src
     $ make
@@ -99,7 +99,7 @@ To uninstall:
 
 Start the MSYS2 shell, then run the following commands:
 
-    $ VERSION=2.4.3
+    $ VERSION=2.4.4
     $ tar zxvf SDL_bgi-$VERSION.tar.gz
     $ cd SDL_bgi-$VERSION/src
     $ PATH=/c/CodeBlocks/MinGW/bin/:$PATH && make -f Makefile.CodeBlocks
@@ -118,7 +118,7 @@ in these directories:
 
 Start the MSYS2 shell, then run the following commands:
 
-    $ VERSION=2.4.3
+    $ VERSION=2.4.4
     $ tar zxvf SDL_bgi-$VERSION.tar.gz
     $ cd SDL_bgi-$VERSION/src
     $ PATH=/c/CodeBlocks/MinGW/bin/:$PATH && make -f Makefile.DevCpp

@@ -1,6 +1,6 @@
-% GRAPHICS(3) SDL_bgi 2.4.3
+% GRAPHICS(3) SDL_bgi 2.4.4
 % \ 
-% February 2021
+% May 2021
 
 [1]: # To turn this file to manpage:
 [2]: # pandoc -s -t man graphics.3.md -o graphics.3
@@ -132,7 +132,7 @@ enum {
 #define WM_MOUSEMOVE    SDL_MOUSEMOTION
 ```
 
-## Keys
+## Key codes
 
 \ 
 ```
@@ -328,7 +328,7 @@ void *closegraph* (void);
 : Closes the graphics system.
 
 void *delay* (int millisec)
-: Waits for \A{millisec} milliseconds.
+: Waits for *millisec* milliseconds.
 
 void *detectgraph* (int \*graphdriver, int \*graphmode);
 : Detects the graphics driver and default graphics mode to use; *SDL*
@@ -364,13 +364,13 @@ void *getarccoords* (struct arccoordstype \*arccoords);
 
 void *getaspectratio* (int \*xasp, int \*yasp);
 : Retrieves the current graphics mode's aspect ratio. In *SDL_bgi*,
-  *xasp* and *yasp* are both 10000 (i.e. pixels are squares).
+  *xasp* and *yasp* are both 10000 (i.e. pixels are square).
 
 int *getbkcolor* (void);
 : Returns the current background colour in the default palette.
 
 int *getch* (void);
-: Waits for a key and returns its ASCII code.
+: Waits for a key and returns its ASCII or key code.
 
 int *getcolor* (void);
 : Returns the current drawing (foreground) colour in the default
@@ -462,7 +462,7 @@ char\* *grapherrormsg* (int errorcode);
 : Returns a pointer to the error message string associated with
   *errorcode*, returned by *graphresult*().
 
-int *graphresult*(void);
+int *graphresult* (void);
 : Returns the error code for the last unsuccessful graphics operation
   and resets the error level to *grOk*.
 
@@ -521,7 +521,7 @@ void *putpixel* (int x, int y, int color);
 : Plots a pixel at (*x*, *y*) in the colour defined by *color*.
 
 int *random* (int range) (macro)
-: Returns a random number between 0 and \A{range - 1}.
+: Returns a random number between 0 and *range - 1*
 
 void *rectangle* (int left, int top, int right, int bottom);
 : Draws a rectangle delimited by (*left*, *top*) and
@@ -616,7 +616,7 @@ int *COLOR* (int r, int g, int b);
   *setfillpattern*(), and *setfillstyle*() to set a colour
   specifying its ARGB components.
 
-int *COLOR32*(Uint32 color);
+int *COLOR32* (Uint32 color);
 : Can be used as an argument for *setcolor*(), *setbkcolor*(),
   *setfillpattern*(), and *setfillstyle*() to set a colour as
   ARGB integer.
@@ -625,21 +625,21 @@ Uint32 *colorRGB* (int r, int g, int b) (macro)
 : Can be used to compose a 32 bit colour with *r* *g* *b*
   components.
 
-int *GREEN_VALUE*(int color);
+int *GREEN_VALUE* (int color);
 : Returns the green component of an ARGB colour in the ARGB palette.
 
 int *IS_BGI_COLOR* (int color);
 : Returns 1 if the *current* drawing colour is a standard BGI
   colour (that is, not ARGB). The *color* argument is actually redundant.
 
-int *IS_RGB_COLOR*(int color);
+int *IS_RGB_COLOR* (int color);
 : Returns 1 if the *current* drawing colour is ARGB. The *color*
   argument is actually redundant.
 
 int *RED_VALUE* (int color);
 : Returns the red component of an ARGB colour in the ARGB palette.
 
-void *_putpixel* (int x, int y);
+void *\_putpixel* (int x, int y);
 : Plots a point at (*x*, *y*) using the current drawing colour.
 
 void *closewindow* (int id);
@@ -670,14 +670,14 @@ int *getevent* (void);
 void *getleftclick* (void);
 : Waits for the left mouse button to be clicked and released.
 
-void getlinebuffer (int y, Uint32 \*linebuffer);
+void *getlinebuffer* (int y, Uint32 \*linebuffer);
 : Copies the *y*-th screen line to *linebuffer*.
 
-int *getmaxwidth (void);
+int *getmaxwidth* (void);
 : Returns the maximum possible height for a new window (actual screen
   height in pixels).
   
-int *getmaxwidth (void);
+int *getmaxwidth* (void);
 : Returns the maximum possible width for a new window (actual screen
   width in pixels).
 

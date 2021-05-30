@@ -1,7 +1,7 @@
 % sdl_bgi-quickref.tex
 %
 % Guido Gonzato, PhD
-% February 12, 2021
+% May 4, 2021
 
 \documentclass[a4paper,12pt]{article}
 \usepackage{graphicx}
@@ -22,7 +22,7 @@
 
 \newcommand{\SDLbgi}{\texttt{SDL\_bgi}}
 
-\newcommand{\version}{2.4.3}        % !!! <<<=== Change here !!!
+\newcommand{\version}{2.4.4}        % !!! <<<=== Change here !!!
 
 \newcommand{\V}{\texttt{void}}      % void
 \newcommand{\I}{\texttt{int}}       % int
@@ -168,7 +168,7 @@ aware of. The most important are the following:
 #include <math.h>    // for sin(), cos()
 #include <string.h>  // for strlen(), memcpy()
 
-#define SDL_BGI_VERSION 2.4.3
+#define SDL_BGI_VERSION 2.4.4
 
 enum { NOPE, YEAH } ;
 #define BGI_WINTITLE_LEN 512 // more than enough
@@ -725,7 +725,7 @@ Gets the coordinates of the last call to \func{arc()}, filling the
 \end{bgi}
 
 Retrieves the current graphics mode's aspect ratio. In \SDLbgi,
-\A{xasp} and \A{yasp} are both 10000 (i.e. pixels are squares).
+\A{xasp} and \A{yasp} are both 10000 (i.e. pixels are square).
 
 % -----
 
@@ -1364,7 +1364,8 @@ Sets the current background colour in the default palette.
 \V{} \func{setcolor} (\I{} \A{color});
 \end{bgi}
 
-Sets the current drawing colour in the default palette.
+Sets the current drawing colour in the default palette. If \A{color}
+$>$ \T{MAXCOLORS}, then set \A{color} \% \T{MAXCOLORS}.
 
 % -----
 
@@ -1585,9 +1586,9 @@ disregarded.
 \I{} \func{getch} (\V{});
 \end{bgi}
 
-Waits for a key and returns its ASCII code. In ``slow mode'', a screen
-refresh is performed. If an \T{SDL\_QUIT} event occurs, \T{QUIT} is
-returned.
+Waits for a key and returns its ASCII or key code (i.e.\ \T{KEY\_*}).
+In ``slow mode'', a screen refresh is performed. If an \T{SDL\_QUIT}
+event occurs, \T{QUIT} is returned.
 
 % -----
 

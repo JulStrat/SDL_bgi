@@ -7,14 +7,16 @@
 // By Guido Gonzato, PhD
 // Automatic refresh patch, CHR font support:
 // Marco Diego Aurélio Mesquita
-// Latest update: February 24, 2021
+// Latest update: May 4, 2021
 
 // ZLib License
 
 /*
 
+Copyright (c) 2014-2021 Guido Gonzato, PhD
+
 This software is provided 'as-is', without any express or implied
-warranty.  In no event will the authors be held liable for any damages
+warranty. In no event will the authors be held liable for any damages
 arising from the use of this software.
 
 Permission is granted to anyone to use this software for any purpose,
@@ -47,7 +49,7 @@ freely, subject to the following restrictions:
 #include <math.h>    // for sin(), cos()
 #include <string.h>  // for strlen(), memcpy()
 
-#define SDL_BGI_VERSION 2.4.3
+#define SDL_BGI_VERSION 2.4.4
 
 enum { NOPE, YEAH } ;
 #define BGI_WINTITLE_LEN 512 // more than enough

@@ -82,7 +82,7 @@ int main (int argc, char *argv[])
   
   srand (time(NULL));
   setwinoptions ("", -1, -1, SDL_WINDOW_FULLSCREEN);
-  initwindow (1024, 768); // fullscreen
+  initwindow (0, 0); // fullscreen
   setbkcolor (BLACK);
   cleardevice ();
   refresh ();

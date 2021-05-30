@@ -7,9 +7,9 @@ This directory contains a few simple programs that show how to use
 some features of `SDL_bgi`; type `make` to compile them.
 
 You may want to compile the original `bgidemo.c` program by Borland.
-It's not free software, but it can be downloaded from several sources;
-type `make bgidemo` to download it and compile it. You need the `wget`
-tool in the $PATH.
+It's not free software, so it's not included here. However, it can be
+downloaded from several sources; type `make bgidemo` to download it
+and compile it. You will need the `wget` tool in the $PATH.
 
 `bgidemo` fails to build on MSYS2 because of its wrong `main()`
 declaration; the Makefiles changes `int main()` to `int main(int argc,

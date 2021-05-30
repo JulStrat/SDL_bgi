@@ -1,6 +1,12 @@
 Changelog
 ---------
 
+v. 2.4.4, 2021-05-04
+- fixed bug that affected floodfill() with fill patterns in rare cases
+- extended setcolor(col) to implement an undocumented TC feature; if
+  'col' > MAXCOLORS, then col %= MAXCOLORS
+- documentation updates
+
 v. 2.4.3, 2021-02-24
 - modified getscreensize() behaviour (suggested by Fanourios Attard)
 - added setwintitle()
@@ -197,7 +203,7 @@ v. 1.0.1, 2014-12-09
 - changed getimage()/putimage() to include width, heigth info
   in saved bitmap
 - changed getimage()/putimage() to include viewport info
-- fixed MAXCOLOR value
+- fixed MAXCOLORS value
   (reported by Angelo Graziosi)
 - fixed kbhit() behaviour (reported by Angelo Graziosi) - but breaks
   mouseclick() as a result. To be fixed later.
