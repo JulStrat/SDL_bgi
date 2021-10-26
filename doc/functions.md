@@ -21,8 +21,6 @@ void `clearviewport` (void);
 
 void `closegraph` (void);
 
-void `delay` (int millisec)
-
 void `detectgraph` (int \*graphdriver, int \*graphmode);
 
 void `drawpoly` (int numpoints, int \*polypoints);
@@ -42,8 +40,6 @@ void `getarccoords` (struct arccoordstype \*arccoords);
 void `getaspectratio` (int \*xasp, int \*yasp);
 
 int `getbkcolor` (void);
-
-int `getch` (void);
 
 int `getcolor` (void);
 
@@ -103,8 +99,6 @@ int `installuserdriver` (char \*name, int huge (\*detect)(void));
 
 int `installuserfont` (char \*name); 
 
-int `kbhit` (void);
-
 void `line` (int x1, int y1, int x2, int y2);
 
 void `linerel` (int dx, int dy);
@@ -124,8 +118,6 @@ void `pieslice` (int x, int y, int stangle, int endangle, int radius);
 void `putimage` (int left, int top, void \*bitmap, int op);
 
 void `putpixel` (int x, int y, int color); 
-
-int `random` (int range) (macro)
 
 void `rectangle` (int left, int top, int right, int bottom);
 
@@ -197,11 +189,11 @@ int `IS_RGB_COLOR`(int color);
 
 int `RED_VALUE` (int color);
 
+int `RGBPALETTE` (int);
+
 void `_putpixel` (int x, int y);
 
 void `closewindow` (int id);
-
-int `edelay` (int msec);
 
 int `event` (void);
 
@@ -225,9 +217,15 @@ void `getmiddleclick` (void);
 
 void `getmouseclick` (int kind, int \*x, int \*y);
 
+void `getrgbpalette` (struct rgbpalettetype \*, int size);
+
 void `getrightclick` (void);
 
 void `getscreensize` (int *x, int *y);
+
+int `getwindowheight` (void) (macro)
+
+int `getwindowwidth` (void) (macro)
 
 void `initpalette` (void);
 
@@ -259,6 +257,8 @@ void `sdlbgifast` (void);
 
 void `sdlbgislow` (void);
 
+void `setallrgbpalette` (struct rgbpalettetype \*);
+
 void `setalpha` (int col, Uint8 alpha);
 
 void `setbkrgbcolor` (int color);
@@ -282,5 +282,19 @@ void `showinfobox` (const char *message);
 void `swapbuffers` (void);
 
 void `writeimagefile` (char \*filename, int left, int top, int right, int bottom);
+
+
+Non graphics functions
+----------------------
+
+void `delay` (int millisec) // DOS.H
+
+int `edelay` (int msec);
+
+int `getch` (void); // CONIO.H
+
+int `kbhit` (void); (macro) // CONIO.H
+
+int `random` (int range) (macro) // STDLIB.H
 
 int `xkbhit` (void);

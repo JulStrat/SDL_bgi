@@ -190,6 +190,8 @@ int main (int argc, char *argv[])
   char s[20];
   
   initwindow (0, 0); // fullscreen
+  // setwinoptions ("", -1, -1, SDL_WINDOW_FULLSCREEN);
+  // initwindow (1024, 768);
   
   maxx = getmaxx ();
   maxy = getmaxy ();
@@ -243,7 +245,7 @@ int main (int argc, char *argv[])
       init = 0;
       redraw = 1;
       break;
-      
+
     case WM_RBUTTONDOWN:
     case WM_WHEELDOWN:
       xstep *= 2.0;

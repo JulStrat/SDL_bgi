@@ -124,7 +124,7 @@ void evolve_cells (char old[SIZE][SIZE], char new[SIZE][SIZE])
       if (n < 2 || n > 3)
         new[x][y] = DEAD;
       else
-        if (n == 3)
+        if (3 == n)
           new[x][y] = ALIVE;
         else
           new[x][y] = old[x][y];

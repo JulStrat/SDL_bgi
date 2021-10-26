@@ -31,6 +31,7 @@
 
 int main (int argc, char *argv[])
 {
+  // buffers
   Uint32
     red[HEIGHT][WIDTH],
     tmp[HEIGHT][WIDTH],

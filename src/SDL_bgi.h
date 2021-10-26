@@ -7,7 +7,7 @@
 // By Guido Gonzato, PhD
 // Automatic refresh patch, CHR font support:
 // Marco Diego Aurélio Mesquita
-// Latest update: May 4, 2021
+// Latest update: September 16, 2021
 
 // ZLib License
 
@@ -49,7 +49,7 @@ freely, subject to the following restrictions:
 #include <math.h>    // for sin(), cos()
 #include <string.h>  // for strlen(), memcpy()
 
-#define SDL_BGI_VERSION 2.4.4
+#define SDL_BGI_VERSION 2.5.0
 
 enum { NOPE, YEAH } ;
 #define BGI_WINTITLE_LEN 512 // more than enough
@@ -117,7 +117,7 @@ enum {
   MAXCOLORS    = 15
 };
 
-// ARGB colours, set by COLOR ()
+// ARGB colours, set by COLOR (), COLOR32 (), and RGBPALETTE ()
 
 enum {
   ARGB_FG_COL   = 16,
@@ -138,9 +138,19 @@ enum { COPY_PUT, XOR_PUT, OR_PUT, AND_PUT, NOT_PUT };
 // fill styles
 
 enum {
-  EMPTY_FILL, SOLID_FILL, LINE_FILL, LTSLASH_FILL, SLASH_FILL,
-  BKSLASH_FILL, LTBKSLASH_FILL, HATCH_FILL, XHATCH_FILL,
-  INTERLEAVE_FILL, WIDE_DOT_FILL, CLOSE_DOT_FILL, USER_FILL
+  EMPTY_FILL,       // fills area in background color
+  SOLID_FILL,       // fills area in solid fill color
+  LINE_FILL,        // --- fill
+  LTSLASH_FILL,     // /// fill
+  SLASH_FILL,       // /// fill with thick lines
+  BKSLASH_FILL,     // \\\ fill with thick lines
+  LTBKSLASH_FILL,   // \\\ fill
+  HATCH_FILL,       // light hatch fill
+  XHATCH_FILL,      // heavy cross hatch fill
+  INTERLEAVE_FILL,  // interleaving line fill
+  WIDE_DOT_FILL,    // Widely spaced dot fill
+  CLOSE_DOT_FILL,   // Closely spaced dot fill
+  USER_FILL         // user defined fill
 };
 
 // mouse buttons
@@ -304,8 +314,14 @@ struct linesettingstype {
 };
 
 struct palettetype {
-  Uint32 size;                  // unsigned char in Turbo C / Borland C++
-  Uint32 colors[MAXCOLORS + 1]; // signed char in Turbo C / Borland C++
+  unsigned char size;
+  signed char colors[MAXCOLORS + 1];
+};
+
+// SDL_bgi extension
+struct rgbpalettetype {
+  Uint32 size;
+  Uint32 *colors;
 };
 
 struct textsettingstype {
@@ -325,7 +341,7 @@ struct viewporttype {
 };
 
 // prototypes - standard BGI
-// make them C++ compatible
+// let's make them C++ compatible
 
 #ifdef __cplusplus
 extern "C" {
@@ -365,6 +381,8 @@ int  getmaxcolor (void);
 int  getmaxmode (void);
 int  getmaxx (void);
 int  getmaxy (void);
+#define getwindowwidth  getmaxx
+#define getwindowheight getmaxy
 char *getmodename (int);
 void getmoderange (int, int *, int *);
 void getpalette (struct palettetype *);
@@ -384,7 +402,9 @@ unsigned
 void initgraph (int *, int *, char *);
 int  installuserdriver (char *, int (*)(void));
 int  installuserfont (char *);
-int  kbhit (void);
+// circumvents Mingw bug
+int  bgi_kbhit (void);
+#define kbhit bgi_kbhit
 void line (int, int, int, int);
 void linerel (int, int);
 void lineto (int, int);
@@ -445,6 +465,7 @@ int  getmaxheight (void);
 int  getmaxwidth (void);
 void getmiddleclick (void);
 void getmouseclick (int, int *, int *);
+void getrgbpalette (struct rgbpalettetype *, int);
 void getrightclick (void);
 void getscreensize (int *, int *);
 int  GREEN_VALUE (int);
@@ -460,12 +481,14 @@ void putbuffer (Uint32 *);
 void putlinebuffer (int, Uint32 *);
 void _putpixel (int, int);
 int  RED_VALUE (int );
+int  RGBPALETTE (int);
 void refresh (void);
 void resetwinoptions (int, char *, int, int);
 void resizepalette (Uint32);
 void sdlbgiauto (void);
 void sdlbgifast (void);
 void sdlbgislow (void);
+void setallrgbpalette (struct rgbpalettetype *);
 void setalpha (int, Uint8);
 void setbkrgbcolor (int);
 void setblendmode (int);

@@ -8,12 +8,12 @@ some features of `SDL_bgi`; type `make` to compile them.
 
 You may want to compile the original `bgidemo.c` program by Borland.
 It's not free software, so it's not included here. However, it can be
-downloaded from several sources; type `make bgidemo` to download it
-and compile it. You will need the `wget` tool in the $PATH.
+downloaded from several sources; type `make bgidemo` to download and
+compile it. You will need the `wget` tool in the $PATH.
 
-`bgidemo` fails to build on MSYS2 because of its wrong `main()`
-declaration; the Makefiles changes `int main()` to `int main(int argc,
-char *argv[])`.
+By default, `bgidemo` fails to build on MSYS2 because of its wrong
+`main()` declaration; the Makefiles calls 'sed' to change `int main()`
+to `int main(int argc, char *argv[])`.
 
 There may be compiler warnings using gcc releases newer than 7, as in
 Ubuntu 20.
@@ -37,8 +37,8 @@ it as `./cellular [rule]`, where `rule` is the generating rule (1-255).
 - `fern.c` is a famous IFS system; please see
 <http://en.wikipedia.org/wiki/Iterated_function_system> This program is
 written in a portable way, i.e. it can be compiled and run on other
-implementations of BGI. It was tested on the original Turbo C and
-the (horribly slow) GNU libgraph.
+BGI implementations. It was tested on the original Turbo C and the
+(horribly slow) GNU libgraph.
 
 - `floodfilltest.c` shows the speed of the new `floodfill()` routine.
 
@@ -82,8 +82,8 @@ algorithm is described at <https://lodev.org/cgtutor/plasma.html>.
 
 - `sdlbgidemo.c` shows how to use some of `SDL_bgi`'s features.
 
-- `setpalette.c` shows how to redefine the 16-colour palette and
-restore it.
+- `rgbpalette.c` shows how to save, redefine, and restore colours in
+the ARGB palette.
 
 - `simple.c` displays simple shapes to test `SDL_bgi`'s speed.
 **Note**: this programs hangs in Mingw, because of a bug in its
@@ -106,6 +106,9 @@ starts from 0 (``North'') and increases clockwise.
 
 For a thorough explanation, please read:
 <http://en.wikipedia.org/wiki/Turtle_Graphics>
+
+Commands are based on the Turbo Pascal 3 implementation:
+<https://cs.nyu.edu/~marateck/turtle.html>
 
 Commands available are:
 

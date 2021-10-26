@@ -1,10 +1,10 @@
-# sdl_bgi.spec - tested on Fedora 32
+# sdl_bgi.spec - tested on Fedora 34
 
 %global debug_package %{nil} 
 
 Summary:       SDL2-based 'GRAPHICS.H' implementation
 Name:          SDL_bgi
-Version:       2.4.4
+Version:       2.5.0
 Release:       1
 License:       ZLib
 Group:         Libraries

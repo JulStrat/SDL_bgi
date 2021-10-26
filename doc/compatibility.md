@@ -25,7 +25,7 @@ library.
 
 Compatibility with the original `GRAPHICS.H` is nearly perfect, but
 100% compatibility with old programs written for Turbo C or Borland
-C++ is simply *impossible* to attain. By design, Borland compilers
+C++ is technically *impossible* to attain. By design, Borland compilers
 were not portable; they were specifically designed for the PC/DOS
 platform. Hence, they implemented low-level details such as hardware
 key codes, memory models, DOS and BIOS calls, online assembly, and so
@@ -84,20 +84,9 @@ errorcode = registerbgidriver(EGAVGA_driver);
 you must add `-D EGAVGA_driver` to the `gcc` command line. You'll get
 a compiler warning, but the program will compile and run.
 
-- the `size` and `colors` members of `struct palette` are defined as
-`Uint32` instead of `char`, because colours are implemented as
-ARGB integers in `SDL_bgi`:
-
-````
-struct palettetype {
-  Uint32 size;                   // unsigned char in Turbo C / Borland C++
-  Uint32 colors[MAXCOLORS + 1];  // signed char in Turbo C / Borland C++
-};
-````
-
-- `setpalette()` and `setallpalette()` will not change the colours of
-pixels that have already been drawn. In other words, these functions
-only affect future drawings (no palette cycling);
+- `setpalette()` also changes the colours of pixels on screen, but
+'palette cycling' (i.e. successive palette changes) does not work the
+same way as in Turbo C;
 
 - `putimage()` bitwise operations (`XOR_PUT`, `OR_PUT` etc.) are
 applied to RGB colour components. This is apparently not the same
@@ -107,17 +96,19 @@ behaviour as in old Turbo C;
 
 - `setrgbpalette()` works on the extended ARGB palette. To change the
 RGB components of colours in the default palette, use `setpalette()`
-like this:
+along with `COLOR()` or `RGBPALETTE()`:
 
 ````
 setpalette (RED, COLOR (0xa0, 0x10, 0x10));
+// use the n-th entry in the ARGB palette
+setpalette (GREEN, RGBPALETTE (n));
 ````
 
 
 ## Compatibility with WinBGIm
 
-Most extensions introduced by WinBGIm have been implemented, with some
-differences; WinBGIm, in fact, is written in C++, while `SDL_bgi` is
+Most extensions introduced by WinBGIm have been implemented, with a
+few differences; WinBGIm, in fact, is written in C++, while `SDL_bgi` is
 written in C.
 
 When WinBGIm breaks C compatibility with `GRAPHICS.H` by providing C++
@@ -136,8 +127,9 @@ currently implemented;
 - mouse functions are simplified in `SDL_bgi`, and do not provide
 the full range of options available in WinBGIm;
 
-- functions `getwindowheight()` and and `getwindowwidth()` are
-Windows-specific, and can't be implemented portably;
+- functions `getwindowheight()` and `getwindowwidth()` are
+Windows-specific; in `SDL_bgi`, they are equivalent to `getmaxy()`
+and `getmaxx()`.
 
 - function `closegraph()` has no parameters in `SDL_bgi`;
 
@@ -145,5 +137,6 @@ Windows-specific, and can't be implemented portably;
 parameters in `SDL_bgi`;
 
 - functions `IS_BGI_COLOR()` and `IS_RGB_COLOR()` return a value that
-depends on the colour being used; their argument is ignored.
+depends on the palette being used (BGI or ARGB); their argument
+is ignored.
 

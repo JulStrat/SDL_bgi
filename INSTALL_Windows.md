@@ -31,13 +31,13 @@ to copy `SDL_bgi.dll` and `SDL2.dll` to the same directory as the program.
 ## Installing the Code::Blocks Binaries
 
 Let's assume that you installed CodeBlocks in `C:\CodeBlocks` and SDL2
-development libraries in in `C:\SDL2-2.0.14`. Change the following
+development libraries in in `C:\SDL2-2.0.16`. Change the following
 instructions as needed for your installation.
 
 Unzip `SDL_bgi` archive, then copy:
 
     src/graphics.h  -> C:\CodeBlocks\MinGW\include
-    src/SDL_bgi.h   -> C:\SDL2-2.0.14\i686-w64-mingw32\include\SDL2
+    src/SDL_bgi.h   -> C:\SDL2-2.0.16\i686-w64-mingw32\include\SDL2
     bin/CodeBlocks/SDL_bgi.dll  -> C:\CodeBlocks\MinGW\bin
 
 To learn how to compile programs, please see `howto_CodeBlocks.md`.
@@ -46,13 +46,13 @@ To learn how to compile programs, please see `howto_CodeBlocks.md`.
 ## Installing the Dev-C++ Binaries
 
 Let's assume that you installed Dev-C++ in `C:\DevCpp` and SDL2
-in `C:\SDL2-2.0.14`. Change the following instructions as needed for
+in `C:\SDL2-2.0.16`. Change the following instructions as needed for
 your installation.
 
 Unzip `SDL_bgi` archive, then copy:
 
-    src/graphics.h  -> C:\SDL2-2.0.14\i686-w64-mingw32\include
-    src/SDL_bgi.h   -> C:\SDL2-2.0.14\i686-w64-mingw32\include\SDL2
+    src/graphics.h  -> C:\SDL2-2.0.16\i686-w64-mingw32\include
+    src/SDL_bgi.h   -> C:\SDL2-2.0.16\i686-w64-mingw32\include\SDL2
     bin/DevCpp/SDL_bgi.dll  -> C:\DevCpp\MinGW64\bin
 
 To learn how to compile programs, please see `howto_DevCpp.md`.
@@ -78,7 +78,7 @@ install `make`, `mingw-w64-x86_64-SDL2`, and `mingw-w64-x86_64-gcc`.
 
 Start the MSYS2 shell, then run the following commands:
 
-    $ VERSION=2.4.4
+    $ VERSION=2.5.0
     $ tar zxvf SDL_bgi-$VERSION.tar.gz
     $ cd SDL_bgi-$VERSION/src
     $ make
@@ -99,17 +99,17 @@ To uninstall:
 
 Start the MSYS2 shell, then run the following commands:
 
-    $ VERSION=2.4.4
+    $ VERSION=2.5.0
     $ tar zxvf SDL_bgi-$VERSION.tar.gz
     $ cd SDL_bgi-$VERSION/src
     $ PATH=/c/CodeBlocks/MinGW/bin/:$PATH && make -f Makefile.CodeBlocks
     $ make install
 
 Assuming that you installed CodeBlocks in `C:\CodeBlocks` and SDL2
-development libraries in in `C:\SDL2-2.0.14`, files will be installed
+development libraries in in `C:\SDL2-2.0.16`, files will be installed
 in these directories:
 
-    SDL_bgi_.h   ->  C:\SDL2-2.0.14\i686-w64-mingw32\include\SDL2
+    SDL_bgi_.h   ->  C:\SDL2-2.0.16\i686-w64-mingw32\include\SDL2
     graphics.h   ->  C:\CodeBlocks\MinGW\include
     SDL_bgi.dll  ->  C:\CodeBlocks\MinGW\bin
 
@@ -118,18 +118,18 @@ in these directories:
 
 Start the MSYS2 shell, then run the following commands:
 
-    $ VERSION=2.4.4
+    $ VERSION=2.5.0
     $ tar zxvf SDL_bgi-$VERSION.tar.gz
     $ cd SDL_bgi-$VERSION/src
     $ PATH=/c/CodeBlocks/MinGW/bin/:$PATH && make -f Makefile.DevCpp
     $ make install
 
 Assuming that you installed Dev-C++ in `C:\DevCpp` and SDL2
-development libraries in in `C:\SDL2-2.0.14`, files will be installed
+development libraries in in `C:\SDL2-2.0.16`, files will be installed
 in these directories:
 
-    SDL_bgi_.h   ->  C:\SDL2-2.0.14\i686-w64-mingw32\include\SDL2
-    graphics.h   ->  C:\SDL2-2.0.14\i686-w64-mingw32\include
+    SDL_bgi_.h   ->  C:\SDL2-2.0.16\i686-w64-mingw32\include\SDL2
+    graphics.h   ->  C:\SDL2-2.0.16\i686-w64-mingw32\include
     SDL_bgi.dll  ->  C:\DevCpp\MinGW64\bin
 
 

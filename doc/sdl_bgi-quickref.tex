@@ -1,11 +1,12 @@
 % sdl_bgi-quickref.tex
 %
 % Guido Gonzato, PhD
-% May 4, 2021
+% September 14, 2021
 
 \documentclass[a4paper,12pt]{article}
 \usepackage{graphicx}
 \thispagestyle{empty}
+\usepackage{listings}
 \usepackage{color}
 \usepackage{alltt}
 \usepackage{framed}
@@ -20,9 +21,7 @@
 \setlength{\parindent}{0pt}
 \setlength{\parskip}{3pt}
 
-\newcommand{\SDLbgi}{\texttt{SDL\_bgi}}
-
-\newcommand{\version}{2.4.4}        % !!! <<<=== Change here !!!
+\newcommand{\version}{2.5.0}        % !!! <<<=== Change here !!!
 
 \newcommand{\V}{\texttt{void}}      % void
 \newcommand{\I}{\texttt{int}}       % int
@@ -33,8 +32,9 @@
 \newcommand{\A}[1]{\emph{#1}}       % parameter
 \newcommand{\F}[1]{\texttt{#1}}     % file
 \newcommand{\T}[1]{\texttt{#1}}     % constant
+\newcommand{\file}[1]{\texttt{#1}}  % file name
 
-\newcommand{\file}[1]{\texttt{#1}}
+\newcommand{\SDLbgi}{\texttt{SDL\_bgi}}
 
 \definecolor{defaultshadecolor}{rgb}{0.85,0.85,1}
 \definecolor{shadecolor}{rgb}{0.85,0.85,1}
@@ -50,6 +50,11 @@
 }
 { % end def
   \end{snugshade}
+}
+
+\lstset{
+  language=C,
+  tabsize=2,
 }
 
 % =====
@@ -75,12 +80,13 @@
 \section{Introduction to \SDLbgi}
 
 \SDLbgi{} is a multiplatform, fast, SDL2-based implementation of BGI:
-the Borland Graphics Interface also known as \texttt{GRAPHICS.H}. BGI
+the Borland Graphics Interface also known as \T{GRAPHICS.H}. BGI
 was a graphics library provided by Borland Turbo C / Borland C++
 compilers for DOS, and it was very popular in the late eighties--early
 nineties. It became the \emph{de facto} standard for computer
 graphics, especially in education. For more information, please see 
-\url{https://en.wikipedia.org/wiki/Borland_Graphics_Interface}.
+\href{https://en.wikipedia.org/wiki/Borland_Graphics_Interface}{the
+Wikipedia article}.
 
 % \SDLbgi{} is fully compatible with the BGI implementation of Turbo C
 % 2.01.
@@ -90,8 +96,8 @@ to be a functionally equivalent superset. It provides many extensions
 for ARGB colours, multiple windows, bitmap and vector fonts, and mouse
 support. \SDLbgi{} implements nearly all extensions provided by
 another popular BGI implementation, WinBGIm, and adds several more.
-Please see \url{http://www.codecutter.net/tools/winbgim} for more
-information on WinBGIm.
+Please see \href{http://www.codecutter.net/tools/winbgim}{this page}
+for more information on WinBGIm.
 
 \SDLbgi{} is one of the easiest libraries to do graphics programming
 in C. It is much simpler to use than SDL2, OpenGL and the like;
@@ -109,7 +115,7 @@ lines:
 int main (int argc, char *argv[])
 {
   int i, gd = DETECT, gm;
-  initgraph (&gd, &gm, ""); // default: 800 x 600
+  initgraph (&gd, &gm, "C:\\TC\\BGI"); // default: 800 x 600
   setbkcolor (BLACK);
   cleardevice ();
   outtextxy (0, 0, "Drawing 1000 lines...");
@@ -131,9 +137,9 @@ includes \F{SDL\_bgi.h} that contains all necessary definitions. The
 call to \func{initgraph()} opens a window; from now on, graphics
 functions may be called. \func{closegraph()} closes the window.
 
-Within the window, pixel coordinates range from (0, 0), the upper left
-corner, to (\func{get\-maxx()}, \func{getmaxy()}), the lower right
-corner.
+Within the window, pixel coordinates range from the upper left corner
+at (0, 0) to the lower right corner at (\func{get\-maxx()},
+\func{getmaxy()}).
 
 Some graphic functions set the coordinates of the last drawing
 position, defined as CP (Current Position). At any given moment, a
@@ -168,7 +174,7 @@ aware of. The most important are the following:
 #include <math.h>    // for sin(), cos()
 #include <string.h>  // for strlen(), memcpy()
 
-#define SDL_BGI_VERSION 2.4.4
+#define SDL_BGI_VERSION 2.5.0
 
 enum { NOPE, YEAH } ;
 #define BGI_WINTITLE_LEN 512 // more than enough
@@ -236,7 +242,7 @@ enum {
   MAXCOLORS    = 15
 };
 
-// ARGB colours, set by COLOR ()
+// ARGB colours, set by COLOR (), COLOR32 (), and RGBPALETTE ()
 
 enum {
   ARGB_FG_COL   = 16,
@@ -257,9 +263,19 @@ enum { COPY_PUT, XOR_PUT, OR_PUT, AND_PUT, NOT_PUT };
 // fill styles
 
 enum {
-  EMPTY_FILL, SOLID_FILL, LINE_FILL, LTSLASH_FILL, SLASH_FILL,
-  BKSLASH_FILL, LTBKSLASH_FILL, HATCH_FILL, XHATCH_FILL,
-  INTERLEAVE_FILL, WIDE_DOT_FILL, CLOSE_DOT_FILL, USER_FILL
+  EMPTY_FILL,       // fills area in background color
+  SOLID_FILL,       // fills area in solid fill color
+  LINE_FILL,        // --- fill
+  LTSLASH_FILL,     // /// fill
+  SLASH_FILL,       // /// fill with thick lines
+  BKSLASH_FILL,     // \\\ fill with thick lines
+  LTBKSLASH_FILL,   // \\\ fill
+  HATCH_FILL,       // light hatch fill
+  XHATCH_FILL,      // heavy cross hatch fill
+  INTERLEAVE_FILL,  // interleaving line fill
+  WIDE_DOT_FILL,    // Widely spaced dot fill
+  CLOSE_DOT_FILL,   // Closely spaced dot fill
+  USER_FILL         // user defined fill
 };
 
 // mouse buttons
@@ -400,8 +416,14 @@ struct linesettingstype {
 };
 
 struct palettetype {
-  Uint32 size;                  // unsigned char in Turbo C / Borland C++
-  Uint32 colors[MAXCOLORS + 1]; // signed char in Turbo C / Borland C++
+  unsigned char size;
+  signed char colors[MAXCOLORS + 1];
+};
+
+// SDL_bgi extension
+struct rgbpalettetype {
+  Uint32 size;
+  Uint32 *colors;
 };
 
 struct textsettingstype {
@@ -444,18 +466,31 @@ use the same RGB values as Turbo C 2.01. Please see
 \subsection{Colours}
 
 The default BGI palette includes 16 named colours (\T{BLACK}{\ldots}
-\T{WHITE}); standard functions like \func{setbkco\-lor()} or
-\func{setcolor()} use this palette.
+\T{WHITE}); functions \func{getbkcolor()}, \func{getcolor()},
+\func{putpixel()}, \func{setbkcolor()} \func{setbkcolor()},
+\func{setco\-lor()}, \func{setfillpattern()}, \func{setfillstyle()}
+and \func{setpalette()} use this palette by default.
 
 An extended ARGB palette of \T{PALETTE\_SIZE} additional colours can
-be created and accessed using functions like \func{setbkrgbco\-lor()}
-or \func{setrbgcolor()} described below. The palette can be resized
-using \func{resizepalette()}.
+be created and accessed using functions \func{getrgbpalette()},
+\func{setallpalette()}, \func{setbkrgbcolor()}, \func{setrbgcolor()}
+and \func{setrbgpalette()}. These functions are functionally
+equivalent to their standard BGI counterparts. \T{PALETTE\_SIZE} is
+4096 by default; the palette can be resized using
+\func{resizepalette()}.
+
+Standard BGI functions can also use ARGB colours using \func{COLOR()},
+\func{COLOR32()}, and \func{RGBPALETTE()} as colour parameter; see
+sample programs in directory \file{test/}.
+
+At any given moment, either the BGI or the ARGB palette is being used.
+Functions \T{IS\_BGI\_COLOR} and \T{IS\_RGB\_COLOR} return 1 if the
+corresponding palette is being used.
 
 Constants \T{ARGB\_FG\_COL}, \T{ARGB\_BG\_COL}, \T{ARGB\_FILL\_COL},
 and \T{ARGB\_TMP\_COL} denote the foreground, background, fill, and
-temporary ARGB colours that can be set with the \func{COLOR()}
-function described below.
+temporary ARGB colours that can be set with functions \func{COLOR()},
+\func{COLOR32()}, and \func{RGBPALETTE()}.
 
 % -----
 
@@ -466,7 +501,7 @@ from original \T{.CHR} files; loading \T{.CHR} fonts from disk is also
 possible. Please see \func{settextstyle()} (page
 \pageref{sec:settextstyle}) for details.
 
-  \T{.CHR} font supported was added by Marco Diego Aur\'elio Mesquita.
+\T{.CHR} font support was added by Marco Diego Aur\'elio Mesquita.
 
 
 % -----
@@ -517,7 +552,7 @@ current drawing colour, i.e.\ as specified by \func{setcolor()}.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{arc()}}
+\addcontentsline{toc}{subsection}{\T{arc()}}
 \phantomsection\label{sec:arc}
 
 \begin{bgi}
@@ -536,7 +571,7 @@ used.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{bar()}}
+\addcontentsline{toc}{subsection}{\T{bar()}}
 \phantomsection\label{sec:bar}
 
 \begin{bgi}
@@ -550,7 +585,7 @@ two-dimensional bar, use \func{bar3d()} with \A{depth} equal to 0.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{bar3d()}}
+\addcontentsline{toc}{subsection}{\T{bar3d()}}
 \phantomsection\label{sec:bar3d}
 
 \begin{bgi}
@@ -566,7 +601,7 @@ top is put on.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{circle()}}
+\addcontentsline{toc}{subsection}{\T{circle()}}
 \phantomsection\label{sec:circle}
 
 \begin{bgi}
@@ -581,7 +616,7 @@ used.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{cleardevice()}}
+\addcontentsline{toc}{subsection}{\T{cleardevice()}}
 \phantomsection\label{sec:cleardevice}
 
 \begin{bgi}
@@ -593,7 +628,7 @@ colour. The CP is moved to (0, 0).
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{clearviewport()}}
+\addcontentsline{toc}{subsection}{\T{clearviewport()}}
 \phantomsection\label{sec:clearviewport}
 
 \begin{bgi}
@@ -605,7 +640,7 @@ The CP is moved to (0, 0), relative to the viewport.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{closegraph()}}
+\addcontentsline{toc}{subsection}{\T{closegraph()}}
 \phantomsection\label{sec:closegraph}
 
 \begin{bgi}
@@ -616,7 +651,7 @@ Closes the graphics system.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{detectgraph()}}
+\addcontentsline{toc}{subsection}{\T{detectgraph()}}
 \phantomsection\label{sec:detectgraph}
 
 \begin{bgi}
@@ -628,7 +663,7 @@ and \T{SDL\_FULL\-SCREEN}, respectively.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{drawpoly()}}
+\addcontentsline{toc}{subsection}{\T{drawpoly()}}
 \phantomsection\label{sec:drawpoly}
 
 \begin{bgi}
@@ -641,7 +676,7 @@ the \A{x} and \A{y} coordinate of each vertex.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{ellipse()}}
+\addcontentsline{toc}{subsection}{\T{ellipse()}}
 \phantomsection\label{sec:ellipse}
 
 \begin{bgi}
@@ -655,7 +690,7 @@ Draws an elliptical arc centered at (\A{x}, \A{y}), with axes given by
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{fillellipse()}}
+\addcontentsline{toc}{subsection}{\T{fillellipse()}}
 \phantomsection\label{sec:fillellipse}
 
 \begin{bgi}
@@ -669,7 +704,7 @@ colour and fill pattern.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{fillpoly()}}
+\addcontentsline{toc}{subsection}{\T{fillpoly()}}
 \phantomsection\label{sec:fillpoly}
 
 \begin{bgi}
@@ -681,7 +716,7 @@ current fill colour.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{floodfill()}}
+\addcontentsline{toc}{subsection}{\T{floodfill()}}
 \phantomsection\label{sec:floodfill}
 
 \begin{bgi}
@@ -694,7 +729,7 @@ colour.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{getactivepage()}}
+\addcontentsline{toc}{subsection}{\T{getactivepage()}}
 \phantomsection\label{sec:getactivepage}
 
 \begin{bgi}
@@ -705,11 +740,11 @@ Returns the active page number.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{getarccoords()}}
+\addcontentsline{toc}{subsection}{\T{getarccoords()}}
 \phantomsection\label{sec:getarccoords}
 
 \begin{bgi}
-\V{} \func{getarccoords} (\texttt{struct arccoordstype} \A{*arccoords});
+\V{} \func{getarccoords} (\T{struct arccoordstype} \A{*arccoords});
 \end{bgi}
 
 Gets the coordinates of the last call to \func{arc()}, filling the
@@ -717,7 +752,7 @@ Gets the coordinates of the last call to \func{arc()}, filling the
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{getaspectratio()}}
+\addcontentsline{toc}{subsection}{\T{getaspectratio()}}
 \phantomsection\label{sec:getaspectratio}
 
 \begin{bgi}
@@ -729,20 +764,18 @@ Retrieves the current graphics mode's aspect ratio. In \SDLbgi,
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{getbkcolor()}}
+\addcontentsline{toc}{subsection}{\T{getbkcolor()}}
 \phantomsection\label{sec:getbkcolor}
 
 \begin{bgi}
 \I{} \func{getbkcolor} (\V{});
 \end{bgi}
 
-Returns the current background colour in the default palette. If the
-background colour was set by \func{COLOR()}, \func{getbkcolor()} returns
--1.
+Returns the current background colour.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{getcolor()}}
+\addcontentsline{toc}{subsection}{\T{getcolor()}}
 \phantomsection\label{sec:getcolor}
 
 \begin{bgi}
@@ -755,18 +788,18 @@ palette. If the foregroud colour was set by \func{COLOR()},
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{getdefaultpalette()}}
+\addcontentsline{toc}{subsection}{\T{getdefaultpalette()}}
 \phantomsection\label{sec:getdefaultpalette}
 
 \begin{bgi}
-\texttt{struct palettetype} \func{*getdefaultpalette} (\V{});
+\T{struct palettetype} \func{*getdefaultpalette} (\V{});
 \end{bgi}
 
 Returns the palette definition structure.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{getdrivername()}}
+\addcontentsline{toc}{subsection}{\T{getdrivername()}}
 \phantomsection\label{sec:getdrivername}
 
 \begin{bgi}
@@ -778,7 +811,7 @@ graphics driver.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{getfillpattern()}}
+\addcontentsline{toc}{subsection}{\T{getfillpattern()}}
 \phantomsection\label{sec:getfillpattern}
 
 \begin{bgi}
@@ -790,21 +823,21 @@ the 8-byte area pointed to by \A{pattern}.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{getfillsettings()}}
+\addcontentsline{toc}{subsection}{\T{getfillsettings()}}
 \phantomsection\label{sec:getfillsettings}
 
 \begin{bgi}
-\V{} \func{getfillsettings} (\texttt{struct fillsettingstype}
+\V{} \func{getfillsettings} (\T{struct fillsettingstype}
 \A{*fillinfo});
 \end{bgi}
 
-Fills the \texttt{fillsettingstype} structure pointed to by
+Fills the \T{fillsettingstype} structure pointed to by
 \A{fillinfo} with information about the current fill pattern and fill
 colour.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{getgraphmode()}}
+\addcontentsline{toc}{subsection}{\T{getgraphmode()}}
 \phantomsection\label{sec:getgraphmode}
 
 \begin{bgi}
@@ -815,7 +848,7 @@ Returns the current graphics mode.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{getimage()}}
+\addcontentsline{toc}{subsection}{\T{getimage()}}
 \phantomsection\label{sec:getimage}
 
 \begin{bgi}
@@ -828,33 +861,32 @@ Copies a bit image of the specified region into the memory pointed by
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{getlinesettings()}}
+\addcontentsline{toc}{subsection}{\T{getlinesettings()}}
 \phantomsection\label{sec:getlinesettings}
 
 \begin{bgi}
-\V{} \func{getlinesettings} (\texttt{struct linesettingstype}
+\V{} \func{getlinesettings} (\T{struct linesettingstype}
 \A{*lineinfo});
 \end{bgi}
 
-Fills the \texttt{linesettingstype} structure pointed by \A{lineinfo}
+Fills the \T{linesettingstype} structure pointed by \A{lineinfo}
 with information about the current line style, pattern, and thickness.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{getmaxcolor()}}
+\addcontentsline{toc}{subsection}{\T{getmaxcolor()}}
 \phantomsection\label{sec:getmaxcolor}
 
 \begin{bgi}
 \I{} \func{getmaxcolor} (\V{});
 \end{bgi}
 
-Returns the maximum colour value available (\T{MAXCOLORS}) in the
-default palette. If ARGB colours are being used, it returns
-\T{PALETTE\_SIZE}.
+Returns the maximum colour value available (\T{MAXCOLORS}). If ARGB
+colours are being used, it returns \T{PALETTE\_SIZE}.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{getmaxmode()}}
+\addcontentsline{toc}{subsection}{\T{getmaxmode()}}
 \phantomsection\label{sec:getmaxmode}
 
 \begin{bgi}
@@ -866,7 +898,7 @@ the default is \T{SDL\_FULLSCREEN}.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{getmaxx()}}
+\addcontentsline{toc}{subsection}{\T{getmaxx()}}
 \phantomsection\label{sec:getmaxx}
 
 \begin{bgi}
@@ -877,7 +909,7 @@ Returns the maximum \A{x} screen coordinate.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{getmaxy()}}
+\addcontentsline{toc}{subsection}{\T{getmaxy()}}
 \phantomsection\label{sec:getmaxy}
 
 \begin{bgi}
@@ -888,11 +920,11 @@ Returns the maximum \A{y} screen coordinate.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{getmodename()}}
+\addcontentsline{toc}{subsection}{\T{getmodename()}}
 \phantomsection\label{sec:getmodename}
 
 \begin{bgi}
-\texttt{char*} \func{getmodename} (\I{} \A{mode\_number});
+\T{char*} \func{getmodename} (\I{} \A{mode\_number});
 \end{bgi}
 
 Returns a pointer to a string containing the name of the specified
@@ -900,7 +932,7 @@ graphics mode.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{getmoderange()}}
+\addcontentsline{toc}{subsection}{\T{getmoderange()}}
 \phantomsection\label{sec:getmoderange}
 
 \begin{bgi}
@@ -913,19 +945,19 @@ is ignored.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{getpalette()}}
+\addcontentsline{toc}{subsection}{\T{getpalette()}}
 \phantomsection\label{sec:getpalette}
 
 \begin{bgi}
-\V{} \func{getpalette} (\texttt{struct palettetype} \A{*palette});
+\V{} \func{getpalette} (\T{struct palettetype} \A{*palette});
 \end{bgi}
 
-Fills the \texttt{palettetype} structure pointed by \A{palette} with
+Fills the \T{palettetype} structure pointed by \A{palette} with
 information about the current palette's size and colours.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{getpalettesize()}}
+\addcontentsline{toc}{subsection}{\T{getpalettesize()}}
 \phantomsection\label{sec:getpalettesize}
 
 \begin{bgi}
@@ -937,7 +969,7 @@ Returns the size of the palette (\T{MAXCOLORS} + 1 or
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{getpixel()}}
+\addcontentsline{toc}{subsection}{\T{getpixel()}}
 \phantomsection\label{sec:getpixel}
 
 \begin{bgi}
@@ -948,33 +980,33 @@ Returns the colour of the pixel located at (\A{x}, \A{y}).
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{gettextsettings()}}
+\addcontentsline{toc}{subsection}{\T{gettextsettings()}}
 \phantomsection\label{sec:gettextsettings}
 
 \begin{bgi}
-\V{} \func{gettextsettings} (\texttt{struct textsettingstype}
+\V{} \func{gettextsettings} (\T{struct textsettingstype}
 \A{*texttypeinfo});
 \end{bgi}
 
-Fills the \texttt{textsettingstype} structure pointed to by
+Fills the \T{textsettingstype} structure pointed to by
 \A{texttypeinfo} with information about the current text font,
 direction, size, and justification.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{getviewsettings()}}
+\addcontentsline{toc}{subsection}{\T{getviewsettings()}}
 \phantomsection\label{sec:getviewsettings}
 
 \begin{bgi}
-\V{} \func{getviewsettings} (\texttt{struct viewporttype} \A{*viewport});
+\V{} \func{getviewsettings} (\T{struct viewporttype} \A{*viewport});
 \end{bgi}
 
-Fills the \texttt{viewporttype} structure pointed to by \A{viewport}
+Fills the \T{viewporttype} structure pointed to by \A{viewport}
 with information about the current viewport.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{getvisualpage()}}
+\addcontentsline{toc}{subsection}{\T{getvisualpage()}}
 \phantomsection\label{sec:getvisualpage}
 
 \begin{bgi}
@@ -985,7 +1017,7 @@ Returns the visual page number.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{getx()}}
+\addcontentsline{toc}{subsection}{\T{getx()}}
 \phantomsection\label{sec:getx}
 
 \begin{bgi}
@@ -996,7 +1028,7 @@ Returns the current viewport's \A{x} coordinate.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{gety()}}
+\addcontentsline{toc}{subsection}{\T{gety()}}
 \phantomsection\label{sec:gety}
 
 \begin{bgi}
@@ -1007,7 +1039,7 @@ Returns the current viewport's \A{y} coordinate.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{graphdefaults()}}
+\addcontentsline{toc}{subsection}{\T{graphdefaults()}}
 \phantomsection\label{sec:graphdefaults}
 
 \begin{bgi}
@@ -1022,11 +1054,11 @@ justification.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{grapherrormsg()}}
+\addcontentsline{toc}{subsection}{\T{grapherrormsg()}}
 \phantomsection\label{sec:grapherrormsg}
 
 \begin{bgi}
-\texttt{char*} \func{grapherrormsg} (\I{} \A{errorcode});
+\T{char*} \func{grapherrormsg} (\I{} \A{errorcode});
 \end{bgi}
 
 Returns a pointer to the error message string associated with
@@ -1034,7 +1066,7 @@ Returns a pointer to the error message string associated with
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{graphresult()}}
+\addcontentsline{toc}{subsection}{\T{graphresult()}}
 \phantomsection\label{sec:graphresult}
 
 \begin{bgi}
@@ -1042,15 +1074,15 @@ Returns a pointer to the error message string associated with
 \end{bgi}
 
 Returns the error code for the last unsuccessful graphics operation
-and resets the error level to \texttt{grOk}.
+and resets the error level to \T{grOk}.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{imagesize()}}
+\addcontentsline{toc}{subsection}{\T{imagesize()}}
 \phantomsection\label{sec:imagesize}
 
 \begin{bgi}
-\texttt{unsigned} \func{imagesize} (\I{} \A{left}, \I{} \A{top}, \I{}
+\T{unsigned} \func{imagesize} (\I{} \A{left}, \I{} \A{top}, \I{}
 \A{right}, \I{} \A{bottom});
 \end{bgi}
 
@@ -1059,7 +1091,7 @@ image.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{initgraph()}}
+\addcontentsline{toc}{subsection}{\T{initgraph()}}
 \phantomsection\label{sec:initgraph}
 
 \begin{bgi}
@@ -1106,7 +1138,7 @@ graphic cards.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{installuserdriver()}}
+\addcontentsline{toc}{subsection}{\T{installuserdriver()}}
 \phantomsection\label{sec:installuserdriver}
 
 \begin{bgi}
@@ -1117,7 +1149,7 @@ Unimplemented; not used by \SDLbgi.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{installuserfont()}}
+\addcontentsline{toc}{subsection}{\T{installuserfont()}}
 \phantomsection\label{sec:installuserfont}
 
 \begin{bgi}
@@ -1132,7 +1164,7 @@ pixel-perfect yet.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{line()}}
+\addcontentsline{toc}{subsection}{\T{line()}}
 \phantomsection\label{sec:line}
 
 \begin{bgi}
@@ -1143,7 +1175,7 @@ Draws a line between two specified points; the CP is not updated.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{linerel()}}
+\addcontentsline{toc}{subsection}{\T{linerel()}}
 \phantomsection\label{sec:linerel}
 
 \begin{bgi}
@@ -1155,7 +1187,7 @@ from the CP. The CP is then advanced by (\A{dx}, \A{dy}).
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{lineto()}}
+\addcontentsline{toc}{subsection}{\T{lineto()}}
 \phantomsection\label{sec:lineto}
 
 \begin{bgi}
@@ -1167,7 +1199,7 @@ Draws a line from the CP to (\A{x}, \A{y}), then moves the CP to
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{moverel()}}
+\addcontentsline{toc}{subsection}{\T{moverel()}}
 \phantomsection\label{sec:moverel}
 
 \begin{bgi}
@@ -1178,7 +1210,7 @@ Moves the CP by (\A{dx}, \A{dy}) pixels.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{moveto()}}
+\addcontentsline{toc}{subsection}{\T{moveto()}}
 \phantomsection\label{sec:moveto}
 
 \begin{bgi}
@@ -1190,7 +1222,7 @@ viewport.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{outtext()}}
+\addcontentsline{toc}{subsection}{\T{outtext()}}
 \phantomsection\label{sec:outtext}
 
 \begin{bgi}
@@ -1201,7 +1233,7 @@ Outputs \A{textstring} at the CP.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{outtextxy()}}
+\addcontentsline{toc}{subsection}{\T{outtextxy()}}
 \phantomsection\label{sec:outtextxy}
 
 \begin{bgi}
@@ -1212,7 +1244,7 @@ Outputs \A{textstring} at (\A{x}, \A{y}).
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{pieslice()}}
+\addcontentsline{toc}{subsection}{\T{pieslice()}}
 \phantomsection\label{sec:pieslice}
 
 \begin{bgi}
@@ -1226,7 +1258,7 @@ pie slice is filled using the current fill colour.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{putimage()}}
+\addcontentsline{toc}{subsection}{\T{putimage()}}
 \phantomsection\label{sec:putimage}
 
 \begin{bgi}
@@ -1240,7 +1272,7 @@ specifies the drawing mode (\T{COPY\_PUT}, etc).
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{putpixel()}}
+\addcontentsline{toc}{subsection}{\T{putpixel()}}
 \phantomsection\label{sec:putpixel}
 
 \begin{bgi}
@@ -1251,7 +1283,7 @@ Plots a pixel at (\A{x}, \A{y}) in the colour defined by \A{color}.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{rectangle()}}
+\addcontentsline{toc}{subsection}{\T{rectangle()}}
 \phantomsection\label{sec:rectangle}
 
 \begin{bgi}
@@ -1264,7 +1296,7 @@ Draws a rectangle delimited by (\A{left}, \A{top}) and
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{registerbgidriver()}}
+\addcontentsline{toc}{subsection}{\T{registerbgidriver()}}
 \phantomsection\label{sec:registerbgidriver}
 
 \begin{bgi}
@@ -1275,7 +1307,7 @@ Unimplemented; not used by \SDLbgi.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{registerbgifont()}}
+\addcontentsline{toc}{subsection}{\T{registerbgifont()}}
 \phantomsection\label{sec:registerbgifont}
 
 \begin{bgi}
@@ -1286,7 +1318,7 @@ Unimplemented; not used by \SDLbgi.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{restorecrtmode()}}
+\addcontentsline{toc}{subsection}{\T{restorecrtmode()}}
 \phantomsection\label{sec:restorecrtmode}
 
 \begin{bgi}
@@ -1297,7 +1329,7 @@ Hides the graphics window.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{sector()}}
+\addcontentsline{toc}{subsection}{\T{sector()}}
 \phantomsection\label{sec:sector}
 
 \begin{bgi}
@@ -1311,7 +1343,7 @@ traveling from \A{stangle} to \A{endangle}.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{setactivepage()}}
+\addcontentsline{toc}{subsection}{\T{setactivepage()}}
 \phantomsection\label{sec:setactivepage}
 
 \begin{bgi}
@@ -1323,18 +1355,18 @@ multi-window mode, \func{setactivepage()} only works for the first window.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{setallpalette()}}
+\addcontentsline{toc}{subsection}{\T{setallpalette()}}
 \phantomsection\label{sec:setallpalette}
 
 \begin{bgi}
-\V{} \func{setallpalette} (\texttt{struct palettetype *}\A{palette});
+\V{} \func{setallpalette} (\T{struct palettetype *}\A{palette});
 \end{bgi}
 
-Sets the current palette to the values given in \A{palette}.
+Sets the current palette to the values stored in \A{palette}.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{setaspectratio()}}
+\addcontentsline{toc}{subsection}{\T{setaspectratio()}}
 \phantomsection\label{sec:setaspectratio}
 
 \begin{bgi}
@@ -1346,30 +1378,30 @@ function is not necessary since the pixels are square.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{setbkcolor()}}
+\addcontentsline{toc}{subsection}{\T{setbkcolor()}}
 \phantomsection\label{sec:setbkcolor}
 
 \begin{bgi}
 \V{} \func{setbkcolor} (\I{} \A{color});
 \end{bgi}
 
-Sets the current background colour in the default palette.
+Sets the current background colour.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{setcolor()}}
+\addcontentsline{toc}{subsection}{\T{setcolor()}}
 \phantomsection\label{sec:setcolor}
 
 \begin{bgi}
 \V{} \func{setcolor} (\I{} \A{color});
 \end{bgi}
 
-Sets the current drawing colour in the default palette. If \A{color}
-$>$ \T{MAXCOLORS}, then set \A{color} \% \T{MAXCOLORS}.
+Sets the current drawing colour. If ARGB colours are not being used
+and \A{color} $>$ \T{MAXCOLORS}, then set \A{color} \% \T{MAXCOLORS}.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{setfillpattern()}}
+\addcontentsline{toc}{subsection}{\T{setfillpattern()}}
 \phantomsection\label{sec:setfillpattern}
 
 \begin{bgi}
@@ -1382,7 +1414,7 @@ each bit set to 1 is plotted as a pixel.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{setfillstyle()}}
+\addcontentsline{toc}{subsection}{\T{setfillstyle()}}
 \phantomsection\label{sec:setfillstyle}
 
 \begin{bgi}
@@ -1395,18 +1427,18 @@ pattern.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{setgraphbufsize()}}
+\addcontentsline{toc}{subsection}{\T{setgraphbufsize()}}
 \phantomsection\label{sec:setgraphbufsize}
 
 \begin{bgi}
-unsigned \func{setgraphbufsize} (\texttt{unsigned} \A{bufsize});
+unsigned \func{setgraphbufsize} (\T{unsigned} \A{bufsize});
 \end{bgi}
 
 Unimplemented; not used by \SDLbgi.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{setgraphmode()}}
+\addcontentsline{toc}{subsection}{\T{setgraphmode()}}
 \phantomsection\label{sec:setgraphmode}
 
 \begin{bgi}
@@ -1418,11 +1450,11 @@ Shows the window that was hidden by \func{restorecrtmode()}. The
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{setlinestyle()}}
+\addcontentsline{toc}{subsection}{\T{setlinestyle()}}
 \phantomsection\label{sec:setlinestyle}
 
 \begin{bgi}
-\V{} \func{setlinestyle} (\I{} \A{linestyle}, \texttt{unsigned}
+\V{} \func{setlinestyle} (\I{} \A{linestyle}, \T{unsigned}
 \A{upattern}, \I{} \A{thickness});
 \end{bgi}
 
@@ -1441,7 +1473,7 @@ Arcs, circles, ellipses, and pieslices are not affected by
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{setpalette()}}
+\addcontentsline{toc}{subsection}{\T{setpalette()}}
 \phantomsection\label{sec:setpalette}
 
 \begin{bgi}
@@ -1449,11 +1481,12 @@ Arcs, circles, ellipses, and pieslices are not affected by
 \end{bgi}
 
 Changes the standard palette \A{colornum} to \A{color}, which can also
-be specified using the \func{COLOR()} function.
+be specified using the \func{COLOR()} function; it also changes the
+colour of currently drawn pixels.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{settextjustify()}}
+\addcontentsline{toc}{subsection}{\T{settextjustify()}}
 \phantomsection\label{sec:settextjustify}
 
 \begin{bgi}
@@ -1467,7 +1500,7 @@ horizontally and vertically; settings are \T{LEFT\_TEXT},
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{settextstyle()}}
+\addcontentsline{toc}{subsection}{\T{settextstyle()}}
 \phantomsection\label{sec:settextstyle}
 
 \begin{bgi}
@@ -1493,7 +1526,7 @@ of its internal equivalent.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{setusercharsize()}}
+\addcontentsline{toc}{subsection}{\T{setusercharsize()}}
 \phantomsection\label{sec:setusercharsize}
 
 \begin{bgi}
@@ -1508,7 +1541,7 @@ scaled by \A{multy}/\A{divy}.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{setviewport()}}
+\addcontentsline{toc}{subsection}{\T{setviewport()}}
 \phantomsection\label{sec:setviewport}
 
 \begin{bgi}
@@ -1521,7 +1554,7 @@ all drawings will be clipped (truncated) to the current viewport.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{setvisualpage()}}
+\addcontentsline{toc}{subsection}{\T{setvisualpage()}}
 \phantomsection\label{sec:setvisualpage}
 
 \begin{bgi}
@@ -1533,7 +1566,7 @@ not cleared.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{setwritemode()}}
+\addcontentsline{toc}{subsection}{\T{setwritemode()}}
 \phantomsection\label{sec:setwritemode}
 
 \begin{bgi}
@@ -1545,7 +1578,7 @@ Sets the writing mode for line drawing. \A{mode} can be \T{COPY\_PUT},
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{textheight()}}
+\addcontentsline{toc}{subsection}{\T{textheight()}}
 \phantomsection\label{sec:textheight}
 
 \begin{bgi}
@@ -1556,7 +1589,7 @@ Returns the height in pixels of a string.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{textwidth()}}
+\addcontentsline{toc}{subsection}{\T{textwidth()}}
 \phantomsection\label{sec:textwidth}
 
 \begin{bgi}
@@ -1574,12 +1607,13 @@ Returns the width in pixels of a string.
 \end{bgi}
 
 Waits for \A{millisec} milliseconds. In ``slow mode'', a screen
-refresh is performed. Events that occur during the delay are
-disregarded.
+refresh is performed.
+
+\emph{Note}: in Turbo C, this function was provided by \T{DOS.H}.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{getch()}}
+\addcontentsline{toc}{subsection}{\T{getch()}}
 \phantomsection\label{sec:getch}
 
 \begin{bgi}
@@ -1590,9 +1624,11 @@ Waits for a key and returns its ASCII or key code (i.e.\ \T{KEY\_*}).
 In ``slow mode'', a screen refresh is performed. If an \T{SDL\_QUIT}
 event occurs, \T{QUIT} is returned.
 
+\emph{Note}: in Turbo C, this function was provided by \T{CONIO.H}.
+
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{kbhit()}}
+\addcontentsline{toc}{subsection}{\T{kbhit()}}
 \phantomsection\label{sec:kbhit}
 
 \begin{bgi}
@@ -1603,9 +1639,11 @@ Returns 1 when a key is pressed, excluding special keys (Ctrl, Shift,
 etc.); in ``slow mode'', a screen refresh is performed. If an
 \T{SDL\_QUIT} event occurs, \T{QUIT} is returned.
 
+\emph{Note}: in Turbo C, this function was provided by \T{CONIO.H}.
+
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{random()}}
+\addcontentsline{toc}{subsection}{\T{random()}}
 \phantomsection\label{sec:random}
 
 \begin{bgi}
@@ -1613,6 +1651,8 @@ etc.); in ``slow mode'', a screen refresh is performed. If an
 \end{bgi}
 
 Returns a random number between 0 and \A{range - 1}.
+
+\emph{Note}: in Turbo C, this function was provided by \T{STDLIB.H}.
 
 % -----
 
@@ -1625,7 +1665,7 @@ made available by WinBGIm.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{ALPHA\_VALUE()}}
+\addcontentsline{toc}{subsection}{\T{ALPHA\_VALUE()}}
 \phantomsection\label{sec:ALPHAVALUE}
 
 \begin{bgi}
@@ -1637,7 +1677,7 @@ ARGB palette.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{BLUE\_VALUE()}}
+\addcontentsline{toc}{subsection}{\T{BLUE\_VALUE()}}
 \phantomsection\label{sec:BLUEVALUE}
 
 \begin{bgi}
@@ -1648,18 +1688,19 @@ Returns the blue component of an ARGB colour in the ARGB palette.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{COLOR()}}
+\addcontentsline{toc}{subsection}{\T{COLOR()}}
 \phantomsection\label{sec:COLOR}
 
 \begin{bgi}
 \I{} \func{COLOR} (\I{} \A{r}, \I{} \A{g}, \I{} \A{b});
 \end{bgi}
 
-Can be used as an argument for \func{setcolor()}, \func{setbkcolor()},
-\func{setfillpattern()}, and \func{setfillstyle()} to set a colour
-specifying its ARGB components. The colour is stored in
-\T{ARGB\_TMP\_COL}, and it is also copied in one of the following:
-\T{ARGB\_FG\_COL}, \T{ARGB\_BG\_COL}, \T{ARGB\_FILL\_COL}.
+Can be used as colour argument for \func{getbkcolor()},
+\func{getcolor()}, \func{putpixel()}, \func{setbkcolor()}
+\func{setbkcolor()}, \func{setcolor()}, \func{setfillpattern()},
+\func{setfillstyle()} and \func{setpalette()} to set a colour
+specifying its ARGB components. The colour index is
+\T{ARGB\_TMP\_COL}.
 
 Functions \func{ALPHA\_VALUE()}, \func{BLUE\_VALUE()},
 \func{GREEN\_VALUE()}, and \func{RED\_VALUE()} do not work on temporary
@@ -1667,18 +1708,18 @@ colours.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{COLOR32()}}
+\addcontentsline{toc}{subsection}{\T{COLOR32()}}
 \phantomsection\label{sec:COLOR32}
 
 \begin{bgi}
 \I{} \func{COLOR32} (\I{} \Ut{color});
 \end{bgi}
 
-Can be used as an argument for \func{setcolor()}, \func{setbkcolor()},
-\func{setfillpattern()}, and \func{setfillstyle()} to set a colour as
-ARGB integer. The colour is stored in \T{ARGB\_TMP\_COL}, and it is
-also copied in one of the following: \T{ARGB\_FG\_COL},
-\T{ARGB\_BG\_COL}, \T{ARGB\_FILL\_COL}.
+Can be used as colour argument for \func{getbkcolor()},
+\func{getcolor()}, \func{putpixel()}, \func{setbkcolor()}
+\func{setbkcolor()}, \func{setcolor()}, \func{setfillpattern()},
+\func{setfillstyle()} and \func{setpalette()} to set a colour as ARGB
+integer. The colour index is \T{ARGB\_TMP\_COL}.
 
 Functions \func{ALPHA\_VALUE()}, \func{BLUE\_VALUE()},
 \func{GREEN\_VALUE()}, and \func{RED\_VALUE()} do not work on temporary
@@ -1686,7 +1727,7 @@ colours.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{colorRGB()}}
+\addcontentsline{toc}{subsection}{\T{colorRGB()}}
 \phantomsection\label{sec:colorRGB}
 
 \begin{bgi}
@@ -1694,12 +1735,12 @@ colours.
 \end{bgi}
 
 Can be used to compose a 32 bit colour with \A{r} \A{g} \A{b}
-components; the alpha value is set to 0xff. This macro is typically
-used to set values in memory buffers.
+components; the alpha value is set to \T{0xff}. This macro is
+typically used to set values in memory buffers.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{GREEN\_VALUE()}}
+\addcontentsline{toc}{subsection}{\T{GREEN\_VALUE()}}
 \phantomsection\label{sec:GREENVALUE}
 
 \begin{bgi}
@@ -1710,7 +1751,7 @@ Returns the green component of an ARGB colour in the ARGB palette.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{IS\_BGI\_COLOR()}}
+\addcontentsline{toc}{subsection}{\T{IS\_BGI\_COLOR()}}
 \phantomsection\label{sec:ISBGICOLOR}
 
 \begin{bgi}
@@ -1722,7 +1763,7 @@ colour (that is, not ARGB). The \A{color} argument is actually redundant.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{IS\_RGB\_COLOR()}}
+\addcontentsline{toc}{subsection}{\T{IS\_RGB\_COLOR()}}
 \phantomsection\label{sec:ISRGBCOLOR}
 
 \begin{bgi}
@@ -1734,7 +1775,7 @@ argument is actually redundant.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{RED\_VALUE()}}
+\addcontentsline{toc}{subsection}{\T{RED\_VALUE()}}
 \phantomsection\label{sec:REDVALUE}
 
 \begin{bgi}
@@ -1745,7 +1786,27 @@ Returns the red component of an ARGB colour in the ARGB palette.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{\_putpixel()}}
+\addcontentsline{toc}{subsection}{\T{RGBPALETTE()}}
+\phantomsection\label{sec:RGBPALETTE}
+
+\begin{bgi}
+\I{} \func{RGBPALETTE} (\I{} \A{color});
+\end{bgi}
+
+Can be used as a colour argument for \func{getbkcolor()},
+\func{getcolor()}, \func{putpixel()}, \func{setbkcolor()}
+\func{setbkcolor()}, \func{setcolor()}, \func{setfillpattern()},
+\func{setfillstyle()} and \func{setpalette()} to set the colour from
+the ARGB palette \A{color} entry. The colour index is
+\T{ARGB\_TMP\_COL}.
+
+Functions \func{ALPHA\_VALUE()}, \func{BLUE\_VALUE()},
+\func{GREEN\_VALUE()}, and \func{RED\_VALUE()} do not work on temporary
+colours.
+
+% -----
+
+\addcontentsline{toc}{subsection}{\T{\_putpixel()}}
 \phantomsection\label{sec:pputpixel}
 
 \begin{bgi}
@@ -1757,7 +1818,7 @@ function may be faster than \func{putpixel()}.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{closewindow()}}
+\addcontentsline{toc}{subsection}{\T{closewindow()}}
 \phantomsection\label{sec:closewindow}
 
 \begin{bgi}
@@ -1779,7 +1840,7 @@ event.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{event()}}
+\addcontentsline{toc}{subsection}{\T{event()}}
 \phantomsection\label{sec:event}
 
 \begin{bgi}
@@ -1791,7 +1852,7 @@ occurred.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{eventtype()}}
+\addcontentsline{toc}{subsection}{\T{eventtype()}}
 \phantomsection\label{sec:eventtype}
 
 \begin{bgi}
@@ -1803,7 +1864,7 @@ Returns the type of the last event; either \T{SDL\_KEYPRESS} or
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{getbuffer()}}
+\addcontentsline{toc}{subsection}{\T{getbuffer()}}
 \phantomsection\label{sec:getbuffer}
 
 \begin{bgi}
@@ -1811,12 +1872,12 @@ Returns the type of the last event; either \T{SDL\_KEYPRESS} or
 \end{bgi}
 
 Copies the contents of the active window to \A{buffer}, which must be
-a \func{getmaxy()+1} $\times$ \func{getmaxx()+1} array of \A{Uint32}
-in ARGB format.
+a (\func{getmaxy() + 1}) $\times$ (\func{getmaxx() + 1}) array of
+\A{Uint32}. Copied elements are in ARGB format.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{getcurrentwindow()}}
+\addcontentsline{toc}{subsection}{\T{getcurrentwindow()}}
 \phantomsection\label{sec:getcurrentwindow}
 
 \begin{bgi}
@@ -1827,7 +1888,7 @@ Returns the \A{id} of the current window.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{getevent()}}
+\addcontentsline{toc}{subsection}{\T{getevent()}}
 \phantomsection\label{sec:getevent}
 
 \begin{bgi}
@@ -1839,7 +1900,7 @@ the code of the key, mouse button, or \T{QUIT}.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{getleftclick()}}
+\addcontentsline{toc}{subsection}{\T{getleftclick()}}
 \phantomsection\label{sec:getleftclick}
 
 \begin{bgi}
@@ -1850,7 +1911,7 @@ Waits for the left mouse button to be clicked and released.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{getlinebuffer()}}
+\addcontentsline{toc}{subsection}{\T{getlinebuffer()}}
 \phantomsection\label{sec:getlinebuffer}
 
 \begin{bgi}
@@ -1862,7 +1923,7 @@ Copies the \A{y}-th screen line to \A{linebuffer}, which must be a
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{getmaxheight()}}
+\addcontentsline{toc}{subsection}{\T{getmaxheight()}}
 \phantomsection\label{sec:getmaxheight}
 
 \begin{bgi}
@@ -1875,7 +1936,7 @@ initialisation.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{getmaxwidth()}}
+\addcontentsline{toc}{subsection}{\T{getmaxwidth()}}
 \phantomsection\label{sec:getmaxwidth}
 
 \begin{bgi}
@@ -1888,7 +1949,7 @@ initialisation.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{getmiddleclick()}}
+\addcontentsline{toc}{subsection}{\T{getmiddleclick()}}
 \phantomsection\label{sec:getmiddleclick}
 
 \begin{bgi}
@@ -1899,7 +1960,7 @@ Waits for the middle mouse button to be clicked and released.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{getmouseclick()}}
+\addcontentsline{toc}{subsection}{\T{getmouseclick()}}
 \phantomsection\label{sec:getmouseclick}
 
 \begin{bgi}
@@ -1911,7 +1972,19 @@ expected by \func{ismouseclick()}.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{getrightclick()}}
+\addcontentsline{toc}{subsection}{\T{getrgbpalette()}}
+\phantomsection\label{sec:getrgbpalette}
+
+\begin{bgi}
+\V{} \func{getrgbpalette} (\T{struct rgbpalettetype} \A{*palette});
+\end{bgi}
+
+Fills the \T{rgbpalettetype} structure pointed by \A{palette} with
+information about the current ARGB palette's size and colours.
+
+% -----
+
+\addcontentsline{toc}{subsection}{\T{getrightclick()}}
 \phantomsection\label{sec:getrightclick}
 
 \begin{bgi}
@@ -1922,7 +1995,7 @@ Waits for the right mouse button to be clicked and released.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{getscreensize()}}
+\addcontentsline{toc}{subsection}{\T{getscreensize()}}
 \phantomsection\label{sec:getscreensize}
 
 \begin{bgi}
@@ -1935,7 +2008,29 @@ before graphics initialisation.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{initpalette()}}
+\addcontentsline{toc}{subsection}{\T{getwindowheight()}}  (macro)
+\phantomsection\label{sec:getwindowheight}
+
+\begin{bgi}
+\V{} \func{getwindowheight} (\V{});
+\end{bgi}
+
+Equivalent to \func{getmaxy()} (WinBGIm compatibility).
+
+% -----
+
+\addcontentsline{toc}{subsection}{\T{getwindowwidth()}}  (macro)
+\phantomsection\label{sec:getwindowwidth}
+
+\begin{bgi}
+\V{} \func{getwindowwidth} (\V{});
+\end{bgi}
+
+Equivalent to \func{getmaxx()} (WinBGIm compatibility).
+
+% -----
+
+\addcontentsline{toc}{subsection}{\T{initpalette()}}
 \phantomsection\label{sec:initpalette}
 
 \begin{bgi}
@@ -1949,7 +2044,7 @@ otherwise, a brighter palette will be used.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{initwindow()}}
+\addcontentsline{toc}{subsection}{\T{initwindow()}}
 \phantomsection\label{sec:initwindow}
 
 \begin{bgi}
@@ -1966,7 +2061,7 @@ use \func{sdlbgiauto()}.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{ismouseclick()}}
+\addcontentsline{toc}{subsection}{\T{ismouseclick()}}
 \phantomsection\label{sec:ismouseclick}
 
 \begin{bgi}
@@ -1977,7 +2072,7 @@ Returns 1 if the \A{kind} mouse button was clicked.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{mouseclick()}}
+\addcontentsline{toc}{subsection}{\T{mouseclick()}}
 \phantomsection\label{sec:mouseclick}
 
 \begin{bgi}
@@ -1989,7 +2084,7 @@ was clicked.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{mousex()}}
+\addcontentsline{toc}{subsection}{\T{mousex()}}
 \phantomsection\label{sec:mousex}
 
 \begin{bgi}
@@ -2000,7 +2095,7 @@ Returns the X coordinate of the last mouse click.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{mousey()}}
+\addcontentsline{toc}{subsection}{\T{mousey()}}
 \phantomsection\label{sec:mousey}
 
 \begin{bgi}
@@ -2011,7 +2106,7 @@ Returns the Y coordinate of the last mouse click.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{putbuffer()}}
+\addcontentsline{toc}{subsection}{\T{putbuffer()}}
 \phantomsection\label{sec:putbuffer}
 
 \begin{bgi}
@@ -2019,12 +2114,13 @@ Returns the Y coordinate of the last mouse click.
 \end{bgi}
 
 Copies \A{buffer} to the current window. \A{buffer} must be a
-\func{getmaxy()+1} $\times$ \func{getmaxx()+1} array of \A{Uint32} in
-ARGB format. This function is faster than direct pixel manipulation.
+(\func{getmaxy() + 1}) $\times$ (\func{getmaxx() + 1}) array of
+\A{Uint32} in ARGB format. This function is faster than direct pixel
+manipulation.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{putlinebuffer()}}
+\addcontentsline{toc}{subsection}{\T{putlinebuffer()}}
 \phantomsection\label{sec:putlinebuffer}
 
 \begin{bgi}
@@ -2037,7 +2133,7 @@ ARGB format. This function is faster than direct pixel manipulation.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{readimagefile()}}
+\addcontentsline{toc}{subsection}{\T{readimagefile()}}
 \phantomsection\label{sec:readimagefile}
 
 \begin{bgi}
@@ -2052,7 +2148,7 @@ clipped as necessary.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{refresh()}}
+\addcontentsline{toc}{subsection}{\T{refresh()}}
 \phantomsection\label{sec:refresh}
 
 \begin{bgi}
@@ -2063,7 +2159,7 @@ Updates the screen contents, i.e.\ displays all graphics.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{resetwinoptions()}}
+\addcontentsline{toc}{subsection}{\T{resetwinoptions()}}
 \phantomsection\label{sec:resetwinoptions}
 
 \begin{bgi}
@@ -2081,7 +2177,7 @@ If either \A{x} or \A{y} is -1, the position parameters are ignored.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{resizepalette()}}
+\addcontentsline{toc}{subsection}{\T{resizepalette()}}
 \phantomsection\label{sec:resizepalette}
 
 \begin{bgi}
@@ -2093,7 +2189,7 @@ otherwise. The initial size of the ARGB palette is 4096.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{sdlbgiauto()}}
+\addcontentsline{toc}{subsection}{\T{sdlbgiauto()}}
 \phantomsection\label{sec:sdlbgiauto}
 
 \begin{bgi}
@@ -2105,7 +2201,7 @@ automatically. Caveat: it may not work on some graphics cards.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{sdlbgifast()}}
+\addcontentsline{toc}{subsection}{\T{sdlbgifast()}}
 \phantomsection\label{sec:sdlbgifast}
 
 \begin{bgi}
@@ -2117,7 +2213,7 @@ graphics.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{sdlbgislow()}}
+\addcontentsline{toc}{subsection}{\T{sdlbgislow()}}
 \phantomsection\label{sec:sdlbgislow}
 
 \begin{bgi}
@@ -2129,7 +2225,18 @@ display graphics.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{setalpha()}}
+\addcontentsline{toc}{subsection}{\T{setallrgbpalette()}}
+\phantomsection\label{sec:setallrgbpalette}
+
+\begin{bgi}
+\V{} \func{setallrgbpalette} (\T{struct rgbpalettetype *}\A{palette});
+\end{bgi}
+
+Sets the current ARGB palette to the values stored in \A{palette}.
+
+% -----
+
+\addcontentsline{toc}{subsection}{\T{setalpha()}}
 \phantomsection\label{sec:setalpha}
 
 \begin{bgi}
@@ -2142,7 +2249,7 @@ colours in both palettes.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{setbkrgbcolor()}}
+\addcontentsline{toc}{subsection}{\T{setbkrgbcolor()}}
 \phantomsection\label{sec:setbkrgbcolor}
 
 \begin{bgi}
@@ -2154,7 +2261,7 @@ the ARGB palette.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{setblendmode()}}
+\addcontentsline{toc}{subsection}{\T{setblendmode()}}
 \phantomsection\label{sec:setblendmode}
 
 \begin{bgi}
@@ -2167,7 +2274,7 @@ be \T{SDL\_BLENDMODE\-\_NONE} (default in ``slow mode'') or
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{setcurrentwindow()}}
+\addcontentsline{toc}{subsection}{\T{setcurrentwindow()}}
 \phantomsection\label{sec:setcurrentwindow}
 
 \begin{bgi}
@@ -2178,7 +2285,7 @@ Sets the current active window to \A{id}.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{setrgbcolor()}}
+\addcontentsline{toc}{subsection}{\T{setrgbcolor()}}
 \phantomsection\label{sec:setrgbcolor}
 
 \begin{bgi}
@@ -2190,7 +2297,7 @@ ARGB palette.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{setrgbpalette()}}
+\addcontentsline{toc}{subsection}{\T{setrgbpalette()}}
 \phantomsection\label{sec:setrgbpalette}
 
 \begin{bgi}
@@ -2202,11 +2309,11 @@ Sets the \A{n}-th entry in the ARGB palette specifying the \A{r},
 
 Using \func{setrgbpalette()} and \func{setrgbcolor()} is faster than
 setting colours with \func{setco\-lor()} with a \func{COLOR()}
-argument.
+argument. It does not change the colour of currently drawn pixels.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{setwinoptions()}}
+\addcontentsline{toc}{subsection}{\T{setwinoptions()}}
 \phantomsection\label{sec:setwinoptions}
 
 \begin{bgi}
@@ -2231,7 +2338,7 @@ values \T{SDL\_WINDOW\_FULL\-SCREEN},
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{setwintitle()}}
+\addcontentsline{toc}{subsection}{\T{setwintitle()}}
 \phantomsection\label{sec:setwintitle}
 
 \begin{bgi}
@@ -2242,7 +2349,7 @@ Sets the title of the window identified by \A{id}.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{showerrorbox()}}
+\addcontentsline{toc}{subsection}{\T{showerrorbox()}}
 \phantomsection\label{sec:showerrorbox}
 
 \begin{bgi}
@@ -2254,7 +2361,7 @@ waits for the user to click on the OK button.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{showinfobox()}}
+\addcontentsline{toc}{subsection}{\T{showinfobox()}}
 \phantomsection\label{sec:showinfobox}
 
 \begin{bgi}
@@ -2266,7 +2373,7 @@ message box waits for the user to click on the OK button.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{swapbuffers()}}
+\addcontentsline{toc}{subsection}{\T{swapbuffers()}}
 \phantomsection\label{sec:swapbuffers}
 
 \begin{bgi}
@@ -2277,7 +2384,7 @@ Swaps the current active and the current visual graphics pages.
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{writeimagefile()}}
+\addcontentsline{toc}{subsection}{\T{writeimagefile()}}
 \phantomsection\label{sec:writeimagefile}
 
 \begin{bgi}
@@ -2290,7 +2397,7 @@ Writes a \F{.bmp} file from the screen rectangle defined by
 
 % -----
 
-\addcontentsline{toc}{subsection}{\texttt{xkbhit()}}
+\addcontentsline{toc}{subsection}{\T{xkbhit()}}
 \phantomsection\label{sec:xkbhit}
 
 \begin{bgi}

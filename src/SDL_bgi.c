@@ -7,7 +7,7 @@
 // By Guido Gonzato, PhD
 // Automatic refresh patch, CHR font support:
 // Marco Diego Aurélio Mesquita
-// Latest update: May 4, 2021
+// Latest update: September 16, 2021
 
 // ZLib License
 
@@ -242,7 +242,8 @@ SDL_bool
   bgi_key_pressed      = SDL_FALSE,  // any key pressed?
   bgi_xkey_pressed     = SDL_FALSE,  // any ext. key pressed?
   bgi_refresh_needed   = SDL_FALSE,  // is refresh needed?
-  bgi_use_newpalette   = SDL_TRUE;   // use the new palette?
+  bgi_use_newpalette   = SDL_TRUE,   // use the new palette?
+  bgi_use_tmp_color    = SDL_FALSE;  // use temporary colour?
 
 static float
   bgi_font_mag_x = 1.0,  // font magnification
@@ -511,13 +512,13 @@ static unsigned char bgi_bitmap_font[8 * 256] = {
 
 }; // bgi_bitmap_font[]
 
-static struct arccoordstype bgi_last_arc;
+static struct arccoordstype    bgi_last_arc;
 static struct fillsettingstype bgi_fill_style;
 static struct linesettingstype bgi_line_style;
 static struct textsettingstype bgi_txt_style;
 static struct viewporttype vp;
-// used by palette-related functions
-static struct palettetype pal;
+// copy of the original palette
+static struct palettetype      bgi_pal;
 
 // utility functions
 
@@ -526,7 +527,7 @@ static void putpixel_xor     (int, int, Uint32);
 static void putpixel_and     (int, int, Uint32);
 static void putpixel_or      (int, int, Uint32);
 static void putpixel_not     (int, int, Uint32);
-static void ff_putpixel      (int x, int);
+static void ff_putpixel      (int, int);
 static Uint32 getpixel_raw   (int, int);
 
 static void line_copy        (int, int, int, int);
@@ -549,6 +550,11 @@ static void swap_if_greater  (int *, int *);
 static void circle_bresenham (int, int, int);
 static int  octant           (int, int);
 static void refresh_window   (void);
+
+// Uint32 pixel value
+
+#define PIXEL(X,Y) \
+   bgi_activepage[bgi_current_window][Y * (bgi_maxx + 1) + X]
 
 // -----
 
@@ -1151,8 +1157,7 @@ void cleardevice (void)
 
   for (x = 0; x < bgi_maxx + 1; x++)
     for (y = 0; y < bgi_maxy + 1; y++)
-      bgi_activepage[bgi_current_window][y * (bgi_maxx + 1) + x] =
-        bgi_argb_palette[bgi_bg_color];
+      PIXEL (x, y) = bgi_argb_palette[bgi_bg_color];
 
   update ();
 
@@ -1173,8 +1178,7 @@ void clearviewport (void)
 
   for (x = vp.left; x < vp.right + 1; x++)
     for (y = vp.top; y < vp.bottom + 1; y++)
-      bgi_activepage[bgi_current_window][y * (bgi_maxx + 1) + x] =
-        bgi_argb_palette[bgi_bg_color];
+      PIXEL (x, y) = bgi_argb_palette[bgi_bg_color];
 
   update ();
 
@@ -1212,7 +1216,7 @@ void closegraph (void)
   for (int i = 0; i < MAX_FONTS; i++)
     destroy_font(chr_fonts[i]);
 
-  // Only calls SDL_Quit if not running on fullscreen
+  // Only calls SDL_Quit if not running fullscreen
   if (SDL_FULLSCREEN != bgi_gm)
     SDL_Quit ();
   
@@ -1225,16 +1229,23 @@ void closegraph (void)
 
 void delay (int msec)
 {
-  // Waits for msec milliseconds, ignoring events. Use 'edelay()'
-  // if you need to handle pending events.
+  // Waits for 'msec' milliseconds.
 
-  check_initgraph ();
+  Uint32
+    stop;
 
   update ();
-  // should we use usleep()?
-  SDL_Delay (msec);
+  stop = SDL_GetTicks () + msec;
 
-} // delay ()
+  do {
+
+    if (event())
+      ; // event recorded
+
+  } while (SDL_GetTicks () < stop);
+
+} // edelay ()
+
 
 // -----
 
@@ -1530,7 +1541,9 @@ void fillpoly (int numpoints, int *polypoints)
     tmp, tmpcolor;
 
   if (NULL == (nodeX = calloc (sizeof (int), numpoints))) {
-    fprintf (stderr, "Can't allocate memory for fillpoly()\n");
+    char *str = "Can't allocate memory for fillpoly().\n";
+    fprintf (stderr, "%s", str);
+    showerrorbox (str);
     return;
   }
 
@@ -1543,7 +1556,6 @@ void fillpoly (int numpoints, int *polypoints)
   _setcolor (tmpcolor);
 
   // find Y maxima
-
   ymin = ymax = polypoints[1];
 
   for (i = 0; i < 2 * numpoints; i += 2) {
@@ -1653,115 +1665,57 @@ static void ff_putpixel (int x, int y)
 
 // -----
 
-// the following code is adapted from "A Seed Fill Algorithm"
-// by Paul Heckbert, "Graphics Gems", Academic Press, 1990
-
-// Filled horizontal segment of scanline y for xl<=x<=xr.
-// Parent segment was on line y-dy. dy=1 or -1
-
-typedef struct {
-  int y, xl, xr, dy;
-} Segment;
-
-// max depth of stack; was 10000
-
-#define STACKSIZE 2000
-
-Segment
-  stack[STACKSIZE],
-  *sp = stack; // stack of filled segments
-
-// the following functions were implemented as unreadable macros
-
-static inline void ff_push (int y, int xl, int xr, int dy)
-{
-  // push new segment on stack
-  if (sp < stack + STACKSIZE && y + dy >= 0 &&
-      y + dy <= vp.bottom - vp.top ) {
-    sp->y = y;
-    sp->xl = xl;
-    sp->xr = xr;
-    sp->dy = dy;
-    sp++;
-  }
-}
-
-// -----
-
-static inline void ff_pop (int *y, int *xl, int *xr, int *dy)
-{
-  // pop segment off stack
-  sp--;
-  *dy = sp->dy;
-  *y = sp->y + *dy;
-  *xl = sp->xl;
-  *xr = sp->xr;
-}
-
-// -----
-
-// non-recursive implementation; adapted from Paul Heckbert'
-// Seed Fill algorithm, in "Graphics Gems", Academic Press, 1990
-
-// fill: set the pixel at (x,y) and all of its 4-connected neighbors
-// with the same pixel value to the new pixel value nv.
-// A 4-connected neighbor is a pixel above, below, left, or right
-// of a pixel.
+// the following code is adapted from
+// https://lodev.org/cgtutor/floodfill.html
 
 void _floodfill (int x, int y, int border)
 {
-  // Fills an enclosed area, containing the x and y points bounded by
-  // the border color. The area is filled using the current fill color.
-
   int
-    start,
-    x1, x2,
-    dy = 0;
-  unsigned int
-    oldcol;
-
-  oldcol = getpixel (x, y);
-  ff_push (y, x, x, 1);           // needed in some cases
-  ff_push (y + 1, x, x, -1);      // seed segment (popped 1st)
-
-  while (sp > stack) {
-
-    // pop segment off stack and fill a neighboring scan line
-
-    ff_pop (&y, &x1, &x2, &dy);
-
-     // segment of scan line y-dy for x1<=x<=x2 was previously filled,
-     // now explore adjacent pixels in scan line y
-
-    for (x = x1; x >= 0 && getpixel (x, y) == oldcol; x--)
-      ff_putpixel (x, y);
-
-    if (x >= x1) {
-      for (x++; x <= x2 && getpixel (x, y) == border; x++)
-        ;
-      start = x;
-      if (x > x2)
-        continue;
-    }
-    else {
-      start = x + 1;
-      if (start < x1)
-        ff_push (y, start, x1 - 1, -dy);    // leak on left?
-      x = x1 + 1;
-    }
-    do {
-      for (x1 = x; x <= vp.right && getpixel (x, y) != border; x++)
-        ff_putpixel (x, y);
-      ff_push (y, start, x - 1, dy);
-      if (x > x2 + 1)
-        ff_push (y, x2 + 1, x - 1, -dy);    // leak on right?
-      for (x++; x <= x2 && getpixel (x, y) == border; x++)
-        ;
-      start = x;
-    } while (x <= x2);
-
-  } // while
-
+    x1,
+    sl_x1, sl_x2, // scanline X coordinates
+    oldcol = getpixel (x, y);
+  
+  // draw current scanline from start position to the right
+  x1 = x;
+  while (x1 < getmaxx () && getpixel (x1, y) != border)
+    ff_putpixel (x1++, y);
+  sl_x2 = x1 - 1; // scanline right X coordinate
+  
+  // draw current scanline from start position to the left
+  x1 = x - 1;
+  while (x1 >= 0 && getpixel (x1, y) != border)
+    ff_putpixel (x1--, y);
+  sl_x1 = x1 + 1; // scanline left X coordinate
+  
+  // test for new scanlines above
+  x1 = x;
+  while (x1 < getmaxx () && x1 <= sl_x2) {
+    if (y > 0 && getpixel (x1, y - 1) == oldcol)
+      _floodfill (x1, y - 1, border);
+    x1++;
+  }
+  x1 = x - 1;
+  while (x1 >= 0 && x1 >= sl_x1) {
+    if (y > 0 && getpixel (x1, y - 1) == oldcol)
+      _floodfill (x1, y - 1, border);
+    x1--;
+  }
+  
+  // test for new scanlines below
+  x1 = x;
+  while (x1 < getmaxx () && x1 <= sl_x2) {
+    if (y < getmaxy () - 1 && getpixel (x1, y + 1) == oldcol)
+      _floodfill (x1, y + 1, border);
+    x1++;
+  }
+  
+  x1 = x - 1;
+  while (x1 >= 0 && x1 >= sl_x1) {
+    if (y < getmaxy () - 1 && getpixel (x1, y + 1) == oldcol)
+      _floodfill (x1, y + 1, border);
+    x1--;
+  }
+  
 } // _floodfill ()
 
 // -----
@@ -1781,8 +1735,7 @@ void floodfill (int x, int y, int border)
   oldcol = getpixel (x, y);
 
   // the way the above implementation of floodfill works,
-  // the fill colour must be different than the border colour
-  // and the current shape's background color.
+  // the fill colour must be different from the background color
 
   if (oldcol == border || oldcol == bgi_fill_style.color ||
       x < 0 || x > vp.right - vp.left || // out of viewport/window?
@@ -1895,8 +1848,8 @@ int getbkcolor (void)
 // causes a bug in MSYS2.
 // "getch" is defined as a macro in SDL_bgi.h
 
-// **Note**: this function belongs to "conio.h" and is here
-// only for convenience, as in WinBGIm.
+// **Note**: this function belongs to "conio.h"; it is here
+// for convenience and WinBGIm compatibility.
 
 int bgi_getch (void)
 {
@@ -1905,12 +1858,6 @@ int bgi_getch (void)
 
   int
     key, type;
-
-#if 0
-  // graphics not initialised yet?
-  if (0 == bgi_num_windows)
-    return (getchar ());
-#endif
 
   refresh ();
 
@@ -1970,7 +1917,7 @@ struct palettetype *getdefaultpalette (void)
 
   check_initgraph ();
 
-  return &pal;
+  return &bgi_pal;
 
 } // getdefaultpalette ()
 
@@ -2240,8 +2187,8 @@ void getpalette (struct palettetype *palette)
 
   check_initgraph ();
 
-  for (int i = 0; i < MAXCOLORS; i++)
-    palette->colors[i] = bgi_argb_palette[i]; // we could use 'pal' instead
+  for (int i = BLACK; i < MAXCOLORS; i++)
+    palette->colors[i] = bgi_argb_palette[i];
   
   palette->size = MAXCOLORS + 1;
 
@@ -2268,7 +2215,7 @@ static Uint32 getpixel_raw (int x, int y)
 {
   // Returns a pixel as Uint32 value
 
-  return bgi_activepage[bgi_current_window][y * (bgi_maxx + 1) + x];
+  return PIXEL (x, y);
 
 } // getpixel_raw ()
 
@@ -2460,15 +2407,17 @@ void graphdefaults (void)
   bgi_line_style.thickness = NORM_WIDTH;
 
   // initialise the palette
-  pal.size = BGI_COLORS;
+  bgi_pal.size = BGI_COLORS;
   if (SDL_FALSE == bgi_use_newpalette)
     // use the old (ugly) palette
     for (int i = BLACK; i < WHITE + 1; i++)
-      pal.colors[i] = bgi_orig_palette[i];
+      bgi_pal.colors[i] = bgi_orig_palette[i];
   else
     // use the new palette
     for (int i = BLACK; i < WHITE + 1; i++)
-      pal.colors[i] = bgi_std_palette[i];
+      bgi_pal.colors[i] = bgi_std_palette[i];
+  
+  // the rgb palette is not initialised
 
 } // graphdefaults ()
 
@@ -2478,7 +2427,6 @@ int graphresult (void)
 {
   // Returns the error code for the last unsuccessful graphics
   // operation and resets the error level to grOk.
-  // Only initwindow() sets this variable.
 
   int
     tmp = bgi_error_code;
@@ -2609,16 +2557,16 @@ void initpalette (void)
   bgi_argb_palette = calloc (BGI_COLORS + TMP_COLORS + PALETTE_SIZE,
 			     sizeof (Uint32));
   if (NULL == bgi_argb_palette) {
-    fprintf (stderr, "Could not allocate palette, aborting.\n");
+    char *str = "Could not allocate global palette, aborting.\n";
+    fprintf (stderr, "%s", str);
+    showerrorbox (str);
     exit (1);
   }
   
-  if (SDL_FALSE == bgi_use_newpalette)
-    // use the old (ugly) palette
+  if (SDL_FALSE == bgi_use_newpalette) // use the old (ugly) palette
     for (int i = BLACK; i < WHITE + 1; i++)
       bgi_argb_palette[i] = bgi_orig_palette[i];
-  else
-    // use the new palette
+  else // use the new palette
     for (int i = BLACK; i < WHITE + 1; i++)
       bgi_argb_palette[i] = bgi_std_palette[i];
 
@@ -2626,13 +2574,17 @@ void initpalette (void)
 
 // -----
 
-int kbhit (void)
+// this function should be simply named "kbhit", but this name
+// causes a bug in MSYS2.
+// "kbhit" is defined as a macro in SDL_bgi.h
+
+// **Note**: this function belongs to "conio.h"; it is here
+// for convenience and WinBGIm compatibility.
+
+int bgi_kbhit (void)
 {
   // Returns 1 when a key is pressed, or QUIT
   // if the user asked to close the window
-
-  // CHECK
-  // check_initgraph ();
 
   SDL_Event event;
   SDL_Keycode key;
@@ -2640,6 +2592,7 @@ int kbhit (void)
   update ();
 
   if (SDL_PollEvent (&event)) {
+    
     if (SDL_KEYDOWN == event.type) {
       key = event.key.keysym.sym;
       if (key != SDLK_LCTRL &&
@@ -2657,7 +2610,7 @@ int kbhit (void)
           key != SDLK_APPLICATION) {
 	bgi_key_pressed = SDL_TRUE;
 	bgi_last_key_pressed = (int) key;
-        return SDL_TRUE;
+	return SDL_TRUE;
       }
       else
         return SDL_FALSE;
@@ -2669,11 +2622,12 @@ int kbhit (void)
       }
     else
       SDL_PushEvent (&event); // don't disrupt the mouse
-  }
+  
+  } // if (SDL_PollEvent (&event))
 
   return SDL_FALSE;
 
-} // kbhit ()
+} // bgi_kbhit ()
 
 // -----
 
@@ -3576,11 +3530,10 @@ static void putpixel_copy (int x, int y, Uint32 pixel)
     if (x < vp.left || x > vp.right || y < vp.top || y > vp.bottom)
       return;
 
-  bgi_activepage[bgi_current_window][y * (bgi_maxx + 1) + x] =
-    pixel;
+  PIXEL (x, y) = pixel;
 
   // we could use the native function:
-  // SDL_RenderDrawPoint (bgi_rnd, x, y);
+  // SDL_RenderDrawPoint (bgi_renderer, x, y);
   // but strangely it's slower
 
 } // putpixel_copy ()
@@ -3599,8 +3552,7 @@ static void putpixel_xor (int x, int y, Uint32 pixel)
     if (x < vp.left || x > vp.right || y < vp.top || y > vp.bottom)
       return;
 
-  bgi_activepage[bgi_current_window][y * (bgi_maxx + 1) + x] ^=
-    (pixel & 0x00ffffff);
+  PIXEL (x, y) ^= (pixel & 0x00ffffff);
 
 } // putpixel_xor ()
 
@@ -3618,8 +3570,7 @@ static void putpixel_and (int x, int y, Uint32 pixel)
     if (x < vp.left || x > vp.right || y < vp.top || y > vp.bottom)
       return;
 
-  bgi_activepage[bgi_current_window][y * (bgi_maxx + 1) + x] &=
-    pixel;
+  PIXEL (x, y) &= pixel;
 
 } // putpixel_and ()
 
@@ -3637,8 +3588,7 @@ static void putpixel_or (int x, int y, Uint32 pixel)
     if (x < vp.left || x > vp.right || y < vp.top || y > vp.bottom)
       return;
 
-  bgi_activepage[bgi_current_window][y * (bgi_maxx + 1) + x] |=
-    (pixel & 0x00ffffff);
+  PIXEL (x, y) |= (pixel & 0x00ffffff);
 
 } // putpixel_or ()
 
@@ -3656,8 +3606,7 @@ static void putpixel_not (int x, int y, Uint32 pixel)
     if (x < vp.left || x > vp.right || y < vp.top || y > vp.bottom)
       return;
 
-  bgi_activepage[bgi_current_window][y * (bgi_maxx + 1) + x] = ~
-    (pixel & 0x00ffffff);
+  PIXEL (x, y) = ~ (pixel & 0x00ffffff);
 
 } // putpixel_not ()
 
@@ -3666,10 +3615,13 @@ static void putpixel_not (int x, int y, Uint32 pixel)
 void putpixel (int x, int y, int color)
 {
   // Plots a point at (x,y) in the color defined by 'color'.
+  
+  int tmpcolor;
 
   check_initgraph ();
 
-  int tmpcolor;
+  if (color < -1)
+    color += 32768;
 
   x += vp.left;
   y += vp.top;
@@ -3679,12 +3631,16 @@ void putpixel (int x, int y, int color)
     if (x < vp.left || x > vp.right || y < vp.top || y > vp.bottom)
       return;
 
-  // COLOR () set the ARGB_FG_COL colour
+  // COLOR () or COLOR32 () or RGBPALETTE () set ARGB_FG_COL
   if (-1 == color) {
     tmpcolor = ARGB_FG_COL;
     bgi_argb_palette[tmpcolor] = bgi_argb_palette[ARGB_TMP_COL];
   }
   else {
+    if (color > MAXCOLORS && ! bgi_use_tmp_color) {
+      color %= MAXCOLORS;
+      bgi_use_tmp_color = SDL_FALSE;
+    }
     bgi_argb_mode = SDL_FALSE;
     tmpcolor = color;
   }
@@ -3832,9 +3788,14 @@ void setallpalette (struct palettetype *palette)
   // Sets the current palette to the values given in palette.
 
   check_initgraph ();
+  
+  if (NULL == palette) {
+    bgi_error_code = grError;
+    return;
+  }
 
   for (int i = 0; i < palette->size; i++)
-    bgi_argb_palette[i] = pal.colors[i] = palette->colors[i];
+    bgi_argb_palette[i] = palette->colors[i];
 
 } // setallpalette ()
 
@@ -3857,12 +3818,17 @@ void setbkcolor (int col)
 
   check_initgraph ();
 
-  // COLOR () set the ARGB_BG_COL colour
+  if (col < -1)
+    col += 32768;
+  
+  // COLOR () or COLOR32 () or RGBPALETTE () set ARGB_BG_COL
   if (-1 == col) {
     bgi_bg_color = ARGB_BG_COL;
     bgi_argb_palette[ARGB_BG_COL] = bgi_argb_palette[ARGB_TMP_COL];
   }
   else {
+    if (col > MAXCOLORS)
+      col %= MAXCOLORS;
     bgi_argb_mode = SDL_FALSE;
     bgi_bg_color = col;
   }
@@ -3880,35 +3846,46 @@ void _setcolor (int col)
 
   check_initgraph ();
 
-  // COLOR () set the ARGB_FG_COL colour 
+  if (col < -1)
+    col += 32768;
+  
+  // COLOR () or COLOR32 () or RGBPALETTE () set ARGB_FG_COL
   if (-1 == col) {
     bgi_fg_color = ARGB_FG_COL;
     bgi_argb_palette[ARGB_FG_COL] = bgi_argb_palette[ARGB_TMP_COL];
   }
   else {
+    if (col > MAXCOLORS && ! bgi_use_tmp_color) {
+      col %= MAXCOLORS;
+      bgi_use_tmp_color = SDL_FALSE;
+    }
     bgi_argb_mode = SDL_FALSE;
     bgi_fg_color = col;
   }
 
-} // setcolor ()
+} // _setcolor ()
 
 // -----
 
 void setcolor (int col)
 {
   // Sets the current drawing color using the default palette.
-  // If 'col' > MAXCOLORS, then use MAXCOLORS % col.
 
   check_initgraph ();
 
-  // COLOR () set the ARGB_FG_COL colour 
+  if (col < -1)
+    col += 32768;
+  
+  // COLOR () or COLOR32 () or RGBPALETTE () set ARGB_FG_COL
   if (-1 == col) {
     bgi_fg_color = ARGB_FG_COL;
     bgi_argb_palette[ARGB_FG_COL] = bgi_argb_palette[ARGB_TMP_COL];
   }
   else {
-    if (col > MAXCOLORS)
+    if (col > MAXCOLORS && ! bgi_use_tmp_color) {
       col %= MAXCOLORS;
+      bgi_use_tmp_color = SDL_FALSE;
+    }
     bgi_argb_mode = SDL_FALSE;
     bgi_fg_color = col;
   }
@@ -3922,17 +3899,22 @@ void setfillpattern (char *upattern, int color)
   // Sets a user-defined fill pattern.
 
   check_initgraph ();
+  
+  if (color < -1)
+    color += 32768;
 
   for (int i = 0; i < 8; i++)
     fill_patterns[USER_FILL][i] = (Uint8) *upattern++;
 
-  // COLOR () set the ARGB_FILL_COL colour
+  // COLOR () or COLOR32 () or RGBPALETTE () set ARGB_FILL_COL
   if (-1 == color) {
     bgi_fill_color = ARGB_FILL_COL;
     bgi_argb_palette[bgi_fill_color] = bgi_argb_palette[ARGB_TMP_COL];
     bgi_fill_style.color = bgi_fill_color;
   }
   else {
+    if (color > MAXCOLORS)
+      color %= MAXCOLORS;
     bgi_argb_mode = SDL_FALSE;
     bgi_fill_style.color = color;
   }
@@ -3949,15 +3931,25 @@ void setfillstyle (int pattern, int color)
 
   check_initgraph ();
 
+  if (pattern < 0 && pattern > USER_FILL) {
+    bgi_error_code = grError;
+    return;
+  }
+  
+  // if (color < -1)
+    // color += 32768;
+
   bgi_fill_style.pattern = pattern;
 
-  // COLOR () set the ARGB_FILL_COL colour
+  // COLOR () or COLOR32 () or RGBPALETTE () set ARGB_FILL_COL
   if (-1 == color) {
     bgi_fill_color = ARGB_FILL_COL;
     bgi_argb_palette[bgi_fill_color] = bgi_argb_palette[ARGB_TMP_COL];
     bgi_fill_style.color = bgi_fill_color;
   }
   else {
+    // if (color > MAXCOLORS)
+      // color %= MAXCOLORS;
     bgi_argb_mode = SDL_FALSE;
     bgi_fill_style.color = color;
   }
@@ -3998,12 +3990,22 @@ void setlinestyle (int linestyle, unsigned upattern, int thickness)
 void setpalette (int colornum, int color)
 {
   // Changes the standard palette entry 'colornum' to 'color'.
+  // Does not change already drawn pixels.
 
+  int
+    x, y;
+  
+  Uint32
+    oldcol, newcol;
+  
   check_initgraph ();
 
-  if (colornum < BLACK || colornum > WHITE)
+  // handle negative colours?
+  if (colornum == color || color < -1 || colornum < -1)
     return;
-
+  
+  oldcol = bgi_argb_palette[colornum];
+  
   if (-1 == color) // user called COLOR()
     bgi_argb_palette[colornum] = bgi_argb_palette[ARGB_TMP_COL];
   else {
@@ -4015,6 +4017,13 @@ void setpalette (int colornum, int color)
       bgi_argb_palette[colornum] = bgi_std_palette[color];
   }
 
+  newcol = bgi_argb_palette[colornum];
+
+  for (x = 0; x < getmaxx (); x++)
+    for (y = 0; y < getmaxy (); y++)
+      if (oldcol == PIXEL (x, y))
+	PIXEL (x, y) = newcol;
+  
 } // setpalette ()
 
 // -----
@@ -4159,9 +4168,11 @@ void settextstyle (int font, int direction, int charsize)
   if (font > LAST_SPEC_FONT) { // use a loaded .CHR font
     chr_font = chr_fonts[font];
     if (NULL == chr_font) {
+      char str[100];
       bgi_error_code = grInvalidFontNum;
-      fprintf (stderr, "BGI error: %s\n", 
-	       grapherrormsg (bgi_error_code));
+      sprintf (str, "BGI error: %s\n", grapherrormsg (bgi_error_code));
+      fprintf (stderr, "%s", str);
+      showerrorbox (str);
       exit (1);
     }
   }
@@ -4362,6 +4373,7 @@ int COLOR (int r, int g, int b)
   // Can be used as an argument for setcolor() and setbkcolor()
   // to set an ARGB color.
 
+  bgi_use_tmp_color = SDL_TRUE;
   bgi_argb_palette[ARGB_TMP_COL] = 0xff000000 | r << 16 | g << 8 | b;
   return -1;
 
@@ -4374,6 +4386,7 @@ int COLOR32 (Uint32 color)
   // Can be used as an argument for setcolor() and setbkcolor()
   // to set an ARGB color.
 
+  bgi_use_tmp_color = SDL_TRUE;
   bgi_argb_palette[ARGB_TMP_COL] = color;
   return -1;
 
@@ -4422,6 +4435,20 @@ int RED_VALUE (int color)
 
 // -----
 
+int RGBPALETTE (int color)
+{
+  // Can be used as an argument for setcolor() and setbkcolor()
+  // to set an ARGB color.
+
+  bgi_use_tmp_color = SDL_TRUE;
+  bgi_argb_palette[ARGB_TMP_COL] = 
+    bgi_argb_palette[BGI_COLORS + TMP_COLORS + color];
+  return -1;
+
+} // RGBPALETTE ()
+
+// -----
+
 void _putpixel (int x, int y)
 {
   // like putpixel (), but not immediately displayed
@@ -4467,9 +4494,12 @@ void closewindow (int id)
   // Closes a window.
 
   check_initgraph ();
-
+  
   if (SDL_FALSE == bgi_active_windows[id]) {
-    fprintf (stderr, "Window %d does not exist\n", id);
+    char str[40];
+    sprintf (str, "Window %d does not exist.\n", id);
+    fprintf (stderr, "%s", str);
+    showerrorbox (str);
     return;
   }
 
@@ -4689,6 +4719,26 @@ void getmouseclick (int kind, int *x, int *y)
 
 // -----
 
+void getrgbpalette (struct rgbpalettetype *palette, int size)
+{
+  // Fills the rgbpalettetype structure pointed by palette with
+  // information about the current RGB palette's size and colors.
+
+  check_initgraph ();
+  
+  if (NULL == palette)
+    return;
+  
+  palette->size = size;
+
+  for (int col = 0; col < size; col++)
+    palette->colors[col] = 
+    bgi_argb_palette[BGI_COLORS + TMP_COLORS + col];
+
+} // getrgbpalette ()
+
+// -----
+
 void getrightclick (void)
 {
   // Waits for a right button click + release.
@@ -4740,6 +4790,9 @@ void initwindow (int width, int height)
     first_run = SDL_TRUE,  // first run of initwindow()
     fullscreen = -1;       // fullscreen window already created?
 
+  char
+    str[100];
+  
   // let's be proactive
   bgi_error_code = grOk;
 
@@ -4800,13 +4853,17 @@ void initwindow (int width, int height)
     bgi_num_windows++;
   }
   else {
-    fprintf (stderr, "Could not create new window.\n");
+    sprintf (str, "Could not create new window.\n");
+    fprintf (stderr, "%s", str);
+    showerrorbox (str);
     return;
   }
 
   // check if a fullscreen window is already open
   if (SDL_TRUE == fullscreen) {
-    fprintf (stderr, "Fullscreen window already open.\n");
+    sprintf (str, "Fullscreen window already open.\n");
+    fprintf (stderr, "%s", str);
+    showerrorbox (str);
     return;
   }
 
@@ -5190,8 +5247,7 @@ void readimagefile (char *bitmapname, int x1, int y1, int x2, int y2)
 
   for (int y = dest_rect.y; y < dest_rect.y + dest_rect.h; y++)
     for (int x = dest_rect.x; x < dest_rect.x + dest_rect.w; x++)
-      bgi_activepage[bgi_current_window][y * (bgi_maxx + 1) + x] =
-    pixels[y * (bgi_maxx + 1) + x] | 0xff000000;
+      PIXEL (x, y) = pixels[y * (bgi_maxx + 1) + x] | 0xff000000;
 
   refresh_window ();
   SDL_FreeSurface (bm_surface);
@@ -5225,8 +5281,9 @@ void resetwinoptions (int id, char *title, int x, int y)
   if (SDL_TRUE == bgi_active_windows[id]) {
 
     if (strlen (title) > BGI_WINTITLE_LEN) {
-      fprintf (stderr, "BGI window title name too long.\n");
-      showerrorbox ("BGI window title name too long.");
+      char *str = "BGI window title name too long.\n";
+      fprintf (stderr, "%s", str);
+      showerrorbox (str);
     }
     else
       // if (0 != strlen (title))
@@ -5245,8 +5302,24 @@ void resizepalette (Uint32 newsize)
 {
   // Resizes the palette to 'newsize'
 
+  void
+    *ptr;
+  
+  check_initgraph ();
+  
+  ptr = realloc (bgi_argb_palette,
+		 (BGI_COLORS + TMP_COLORS + PALETTE_SIZE) *
+		 sizeof (Uint32));
+  if (NULL == ptr) {
+    char *str = 
+      "Could not resize the global palette; leaving it unchanged.\n";
+    fprintf (stderr, "%s", str);
+    showinfobox (str);
+    exit (0);
+  }
+  
+  bgi_argb_palette = ptr;
   PALETTE_SIZE = newsize;
-  initpalette ();
   
 } // resizepalette ()
 
@@ -5372,13 +5445,34 @@ void sdlbgislow (void)
 
 // -----
 
+void setallrgbpalette (struct rgbpalettetype *palette)
+{
+  // Sets the current RGB palette to the values given in palette.
+
+  check_initgraph ();
+  
+  if (NULL == palette)
+    return;
+
+  palette->size = PALETTE_SIZE;
+  
+  for (int i = 0; i < PALETTE_SIZE; i++)
+    bgi_argb_palette[BGI_COLORS + TMP_COLORS + i] = palette->colors[i];
+
+} // setallrgbpalette ()
+
+// -----
+
 void setalpha (int col, Uint8 alpha)
 {
   // Sets alpha transparency for 'col' to 'alpha' (0-255).
 
   Uint32 tmp;
 
-  // COLOR () set the ARGB_FG_COL colour
+  if (col < -1)
+    return;
+  
+  // COLOR () or COLOR32 () or RGBPALETTE() set the ARGB_FG_COL colour
   if (-1 == col)
     bgi_fg_color = ARGB_FG_COL;
   else {
@@ -5393,13 +5487,15 @@ void setalpha (int col, Uint8 alpha)
 
 // -----
 
-void setbkrgbcolor (int index)
+void setbkrgbcolor (int colornum)
 {
-  // Sets the current background color to the 'index' colour
+  // Sets the current background color to the 'colornum' colour
   // in the ARGB palette.
 
-  bgi_bg_color = BGI_COLORS + TMP_COLORS + index;
-  bgi_argb_mode = SDL_TRUE;
+  if (colornum < PALETTE_SIZE + 1 && colornum >= 0) {
+    bgi_bg_color = BGI_COLORS + TMP_COLORS + colornum;
+    bgi_argb_mode = SDL_TRUE;
+  }
 
 } // setbkrgbcolor ()
 
@@ -5423,7 +5519,10 @@ void setcurrentwindow (int id)
   check_initgraph ();
 
   if (SDL_FALSE == bgi_active_windows[id]) {
-    fprintf (stderr, "Window %d does not exist.\n", id);
+    char str[40];
+    sprintf (str, "Window %d does not exist.\n", id);
+    fprintf (stderr, "%s", str);
+    showerrorbox (str);
     return;
   }
 
@@ -5442,13 +5541,15 @@ void setcurrentwindow (int id)
 
 // -----
 
-void setrgbcolor (int index)
+void setrgbcolor (int colornum)
 {
-  // Sets the current foreground color to the 'index' colour
+  // Sets the current foreground color to the 'colornum' colour
   // in the ARGB palette.
 
-  bgi_fg_color = BGI_COLORS + TMP_COLORS + index;
-  bgi_argb_mode = SDL_TRUE;
+  if (colornum < PALETTE_SIZE + 1 && colornum >= 0) {
+    bgi_fg_color = BGI_COLORS + TMP_COLORS + colornum;
+    bgi_argb_mode = SDL_TRUE;
+  }
 
 } // setrgbcolor ()
 
@@ -5477,8 +5578,9 @@ void setwinoptions (char *title, int x, int y, Uint32 flags)
   bgi_window_flags = 0;
 
   if (strlen (title) > BGI_WINTITLE_LEN) {
-    fprintf (stderr, "BGI window title name too long.\n");
-    showerrorbox ("BGI window title name too long.");
+    char *str = "BGI window title name too long.\n";
+    fprintf (stderr, "%s", str);
+    showerrorbox (str);
   }
   else
     if (0 != strlen (title))
@@ -5509,8 +5611,9 @@ void setwintitle (int id, char *title)
   // Sets the window title.
 
   if (strlen (title) > BGI_WINTITLE_LEN) {
-    fprintf (stderr, "BGI window title name too long.\n");
-    showerrorbox ("BGI window title name too long.");
+    char *str = "BGI window title name too long.\n";
+    fprintf (stderr, "%s", str);
+    showerrorbox (str);
   }
   else
     SDL_SetWindowTitle (bgi_win[id], title);

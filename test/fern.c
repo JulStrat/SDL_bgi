@@ -22,14 +22,15 @@
  */
 
 #include <stdio.h>
+
+#ifdef _SDL_BGI_H
 #include <unistd.h>
+#else
+#include <stdlib.h> // for random()
+#endif
+
 #include <time.h>
 #include <math.h>
-
-/* graphics.h could be a link to SDL_bgi.h
- * or another implementation. Let's write this program
- * in a portable way.
- */
 
 #include <graphics.h>
 
@@ -38,7 +39,7 @@
 int main (int argc, char *argv[])
 {
 #ifndef _SDL_BGI_H
-  int gd, gm;
+  int gd = DETECT, gm;
 #endif
   int stop = 0;
   long int counter = 0;
@@ -61,7 +62,7 @@ int main (int argc, char *argv[])
 		 -1);
   initgraph (NULL, NULL, "");
 #else
-  initgraph (&gd, &gm, "");
+  initgraph (&gd, &gm, "C:\\TC\\BGI");
 #endif
   srand (time(NULL));
   

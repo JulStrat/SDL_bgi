@@ -30,8 +30,8 @@ endif
 
 PROGRAMS = boo buffers cellular dla fern floodfilltest fonts \
            hopalong life linebuffers kaleido mandelbrot mousetest \
-	   multiwin plasma psychedelia sdlbgidemo setpalette simple \
-	   turtledemo
+	   multiwin plasma psychedelia rgbpalette sdlbgidemo \
+	   simple turtledemo
 
 all: $(PROGRAMS)
 
@@ -41,7 +41,7 @@ all: $(PROGRAMS)
 WGET := $(shell which wget)
 
 bgidemo: bgidemo.c
-ifeq ($(msys),MSYS)
+ifeq ($(msys),_NT)
 	# fix wrong main() definition
 	sed -i 's/main()/main(int argc, char *argv[])/' bgidemo.c
 endif
@@ -102,11 +102,11 @@ plasma: plasma.c
 psychedelia: psychedelia.c 
 	$(CC) $(CFLAGS) -o psychedelia psychedelia.c $(LIBS) -lm
 
+rgbpalette: rgbpalette.c 
+	$(CC) $(CFLAGS) -o rgbpalette rgbpalette.c $(LIBS) -lm
+
 sdlbgidemo: sdlbgidemo.c 
 	$(CC) $(CFLAGS) -o sdlbgidemo sdlbgidemo.c $(LIBS) -lm
-
-setpalette: setpalette.c 
-	$(CC) $(CFLAGS) -o setpalette setpalette.c $(LIBS)
 
 simple: simple.c 
 	$(CC) $(CFLAGS) -o simple simple.c $(LIBS)

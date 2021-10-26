@@ -11,7 +11,7 @@
 Although `SDL_bgi` is almost perfectly compatible with the original
 `GRAPHICS.H` by Borland, a few minor differences have been introduced.
 The original BGI library mainly targeted the VGA video display
-controller, which was quite limited and provided a maximum of 256
+controller, which was quite limited and provided a maximum of 16
 colours. `SDL_bgi` uses modern graphics capabilities provided by
 `SDL2`, while retaining backwards compatibility as much as possible.
 
@@ -57,8 +57,7 @@ opens an 800x600 window, mimicking SVGA graphics. If the environment
 variable `SDL_BGI_RES` is `VGA`, window resolution will be 640x480.
 
 Minimal `dos.h` and `conio.h` are provided in the `test/` directory;
-they're good enough to compile the original `bgidemo.c` unmodified on
-Unix-like platforms.
+they're good enough to compile the original `bgidemo.c`.
 
 Please note that non-BGI functions are *not* implemented. If you need
 `conio.h` for GNU/Linux, please have a look at one of these:
@@ -184,7 +183,7 @@ if the environment variable `SDL_BGI_PALETTE` is set to `BGI`.
 An extended ARGB palette of `PALETTE_SIZE` additional colours can
 be used by functions like `setrgbcolor()` or `setbkrgbcolor()`
 described below; please note the `rgb` in the function names.
-`PALETTE_SIZE` is 4096 by default, but it can be increased using
+`PALETTE_SIZE` is initialised to 4096, but it can be increased using
 `resizepalette()`.
 
 Please see the example programs in the `test/` directory.
@@ -272,12 +271,12 @@ is an integer identifier, as returned by `getcurrentwindow()`.
 ### Colour Functions
 
 - `void setrgbpalette(int color, int r, int g, int b)` sets colours in
-an additional palette containing RGB colours (up to `PALETTE_SIZE`).
+an additional palette containing ARGB colours (up to `PALETTE_SIZE`).
 See example in `test/mandelbrot.c`.
 
 - `void setrgbcolor(int col)` and `void setbkrgbcolor(int col)` are
-the RGB equivalent of `setcolor(int col)` and `setbkcolor(int col)`.
-`col` is an allocated colour entry in the RGB palette.
+the ARGB equivalent of `setcolor(int col)` and `setbkcolor(int col)`.
+`col` is an allocated colour entry in the ARGB palette.
 
 - `COLOR(int r, int g, int b)` can be used as an argument whenever a
 colour value is expected (e.g. `setcolor()` and other functions). It's
@@ -288,17 +287,28 @@ much faster, though.
 - `COLOR32(Uint32 color)` works like `COLOR()`, but accepts a colour
 argument as an ARGB Uint32.
 
+- `RGBPALETTE(int n)` works like `COLOR()`, but it sets the n-th
+colour in the ARGB palette.
+
 - `colorRGB(int r, int g, int b)` can be used to compose a 32 bit
-colour. This macro is typically used to set values in memory buffers.
+colour. This macro is typically used to set values in memory buffers
+(see below).
 
 - `IS_BGI_COLOR(int c)` and `IS_RGB_COLOR(int c)` return 1 if the
-current colour is standard BGI or RGB, respectively. The argument is
+current colour is standard BGI or ARGB, respectively. The argument is
 actually redundant; in fact, a colour entry in the range 0-15 may
-belong to both palettes.
+belong to both palettes. Whether the standard palette or the ARGB
+palette is the current one is set by standard BGI or ARGB functions.
 
 - `ALPHA_VALUE(int c)`, `RED_VALUE(int c)`, `GREEN_VALUE(int c)`, and
-`BLUE_VALUE(int c)` return the A, R, G, B component of an RGB colour
+`BLUE_VALUE(int c)` return the A, R, G, B component of an ARGB colour
 in the extended palette.
+
+- `getrgbpalette(struct rgbpalettetype* palette)` and
+`setallrgbpalette (struct rgbpalettetype *palette)` work like their BGI
+counterpart, but use the ARGB palette. The `colors` member of `struct
+rgbpalettetype` variables must be initialised; please see
+`test/rgbpalette.c`.
 
 - `setalpha(int col, Uint8 alpha)` sets the alpha component of colour
 'col'.
@@ -310,13 +320,13 @@ refresh (`SDL_BLENDMODE_NONE` or `SDL_BLENDMODE_BLEND`).
 ### Buffer Functions
 
 - `getbuffer (Uint32 *buffer)` and `putbuffer (Uint32 *buffer)` copy
-the current window contents to a buffer, and the reverse. Using
+the current window contents to a memory buffer, and the reverse. Using
 `getbuffer()` and `putbuffer()` is faster than direct pixel
 manipulation, as shown by `test/psychedelia.c`
 
 - `getlinebuffer (int y, Uint32 *linebuffer)` and `putlinebuffer (int
 y, Uint32 *linebuffer)` work like `getbuffer()` and `putbuffer()`, but
-on a single line of pixels.
+on a single line of pixels at `y` coordinate.
 
 
 ### Mouse Functions

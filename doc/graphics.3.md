@@ -1,6 +1,6 @@
-% GRAPHICS(3) SDL_bgi 2.4.4
+% GRAPHICS(3) SDL_bgi 2.5.0
 % \ 
-% May 2021
+% September 2021
 
 [1]: # To turn this file to manpage:
 [2]: # pandoc -s -t man graphics.3.md -o graphics.3
@@ -17,8 +17,9 @@ graphics.h - compatibility header for SDL_bgi
 # DESCRIPTION
 
 This header file must be included by programs that use the *SDL_bgi* 
-library. Actual definitions are in *SDL_bgi.h*, usually installed in 
-`/usr/include/SDL2`.
+library. `graphics.h` includes `SDL_bgi.h`, usually  installed in
+`/usr/include/SDL2`, which contains all definitions and function
+prototypes.
 
 *SDL_bgi* is a Borland Graphics Interface implementation based on
 SDL2. This library strictly emulates BGI functions, making it possible
@@ -113,9 +114,19 @@ enum { SOLID_LINE, DOTTED_LINE, CENTER_LINE, DASHED_LINE, USERBIT_LINE };
 enum { COPY_PUT, XOR_PUT, OR_PUT, AND_PUT, NOT_PUT };
 
 enum {
-  EMPTY_FILL, SOLID_FILL, LINE_FILL, LTSLASH_FILL, SLASH_FILL,
-  BKSLASH_FILL, LTBKSLASH_FILL, HATCH_FILL, XHATCH_FILL,
-  INTERLEAVE_FILL, WIDE_DOT_FILL, CLOSE_DOT_FILL, USER_FILL
+  EMPTY_FILL,       // fills area in background color
+  SOLID_FILL,       // fills area in solid fill color
+  LINE_FILL,        // --- fill
+  LTSLASH_FILL,     // /// fill
+  SLASH_FILL,       // /// fill with thick lines
+  BKSLASH_FILL,     // \\\ fill with thick lines
+  LTBKSLASH_FILL,   // \\\ fill
+  HATCH_FILL,       // light hatch fill
+  XHATCH_FILL,      // heavy cross hatch fill
+  INTERLEAVE_FILL,  // interleaving line fill
+  WIDE_DOT_FILL,    // Widely spaced dot fill
+  CLOSE_DOT_FILL,   // Closely spaced dot fill
+  USER_FILL         // user defined fill
 };
 ```
 
@@ -273,8 +284,14 @@ struct linesettingstype {
 };
 
 struct palettetype {
-  Uint32 size;                  // unsigned char in Turbo C / Borland C++
-  Uint32 colors[MAXCOLORS + 1]; // signed char in Turbo C / Borland C++
+  unsigned char size;
+  signed char colors[MAXCOLORS + 1];
+};
+
+// SDL_bgi extension
+struct rgbpalettetype {
+  Uint32 size;
+  Uint32 *colors;
 };
 
 struct textsettingstype {
@@ -331,7 +348,7 @@ void *delay* (int millisec)
 : Waits for *millisec* milliseconds.
 
 void *detectgraph* (int \*graphdriver, int \*graphmode);
-: Detects the graphics driver and default graphics mode to use; *SDL*
+: Detects the default graphics driver and graphics mode to use; *SDL*
   and *SDL_FULLSCREEN*, respectively.
 
 void *drawpoly* (int numpoints, int \*polypoints);
@@ -367,14 +384,13 @@ void *getaspectratio* (int \*xasp, int \*yasp);
   *xasp* and *yasp* are both 10000 (i.e. pixels are square).
 
 int *getbkcolor* (void);
-: Returns the current background colour in the default palette.
+: Returns the current background colour.
 
 int *getch* (void);
 : Waits for a key and returns its ASCII or key code.
 
 int *getcolor* (void);
-: Returns the current drawing (foreground) colour in the default
-  palette.
+: Returns the current drawing (foreground) colour.
 
 struct palettetype\* *getdefaultpalette* (void);
 : Returns the default palette definition structure.
@@ -404,9 +420,8 @@ void *getlinesettings* (struct linesettingstype \*lineinfo);
   with information about the current line style, pattern, and thickness.
 
 int *getmaxcolor* (void);
-: Returns the maximum colour value available (*MAXCOLORS*) in the
-  default palette. If ARGB colours are being used, it returns
-  *PALETTE\_SIZE*.
+: Returns the maximum colour value available (*MAXCOLORS*). If ARGB 
+  colours are being used, it returns *PALETTE\_SIZE*.
 
 int *getmaxmode* (void);
 : Returns the maximum mode number for the current driver. In *SDL_bgi*,
@@ -478,7 +493,7 @@ int *installuserdriver* (char \*name, int huge (\*detect)(void));
 
 int *installuserfont* (char \*name);
 : Loads and installs a *.CHR* font from disk. The function returns
-  an integer to be used as first argument in *settextstyle*.
+  an integer to be used as first argument in *settextstyle*().
 
 int *kbhit* (void);
 : Returns 1 when a key is pressed, excluding special keys (Ctrl, Shift,
@@ -551,10 +566,10 @@ void *setaspectratio* (int xasp, int yasp);
 : Changes the default aspect ratio of the graphics.
 
 void *setbkcolor* (int color);
-: Sets the current background colour in the default palette.
+: Sets the current background colour.
 
 void *setcolor* (int color);
-: Sets the current drawing colour in the default palette.
+: Sets the current drawing colour.
 
 void *setfillpattern* (char \*upattern, int color);
 : Sets a user-defined fill pattern.
@@ -605,28 +620,28 @@ int *textwidth* (char \*textstring);
 \ 
 
 int *ALPHA_VALUE* (int color);
-: Returns the alpha (transparency) component of an ARGB colour in the
+: Returns the alpha (transparency) component of *color* in the
   ARGB palette.
 
 int *BLUE_VALUE* (int color);
-: Returns the blue component of an ARGB colour in the ARGB palette.
+: Returns the blue component of *color* in the ARGB palette.
 
 int *COLOR* (int r, int g, int b);
-: Can be used as an argument for *setcolor*(), *setbkcolor*(),
-  *setfillpattern*(), and *setfillstyle*() to set a colour
-  specifying its ARGB components.
+: Can be used as an argument for *putpixel*(), *setalpha*(),
+  *setcolor*(), *setbkcolor*(), *setfillpattern*(), and *setfillstyle*()
+  to set a colour specifying its ARGB components.
 
 int *COLOR32* (Uint32 color);
-: Can be used as an argument for *setcolor*(), *setbkcolor*(),
-  *setfillpattern*(), and *setfillstyle*() to set a colour as
-  ARGB integer.
+: Can be used as an argument for *putpixel*(), *setalpha*(),
+  *setcolor*(), *setbkcolor*(), *setfillpattern*(), and *setfillstyle*()
+  to set a colour as ARGB integer.
 
 Uint32 *colorRGB* (int r, int g, int b) (macro)
 : Can be used to compose a 32 bit colour with *r* *g* *b*
   components.
 
 int *GREEN_VALUE* (int color);
-: Returns the green component of an ARGB colour in the ARGB palette.
+: Returns the green component of *color* in the ARGB palette.
 
 int *IS_BGI_COLOR* (int color);
 : Returns 1 if the *current* drawing colour is a standard BGI
@@ -637,7 +652,12 @@ int *IS_RGB_COLOR* (int color);
   argument is actually redundant.
 
 int *RED_VALUE* (int color);
-: Returns the red component of an ARGB colour in the ARGB palette.
+: Returns the red component of *color* in the ARGB palette.
+
+int *RGBPALETTE* (int color);
+: Can be used as an argument for *putpixel*(), *setalpha*(),
+  *setcolor*(), *setbkcolor*(), *setfillpattern*(), and *setfillstyle*()
+  to set a colour from the ARGB palette *color* entry.
 
 void *\_putpixel* (int x, int y);
 : Plots a point at (*x*, *y*) using the current drawing colour.
@@ -673,7 +693,7 @@ void *getleftclick* (void);
 void *getlinebuffer* (int y, Uint32 \*linebuffer);
 : Copies the *y*-th screen line to *linebuffer*.
 
-int *getmaxwidth* (void);
+int *getmaxheight* (void);
 : Returns the maximum possible height for a new window (actual screen
   height in pixels).
   
@@ -687,6 +707,10 @@ void *getmiddleclick* (void);
 void *getmouseclick* (int kind, int \*x, int \*y);
 : Sets the *x*, *y* coordinates of the last *kind* button click
   expected by *ismouseclick*().
+
+void *getrgbpalette* (struct rgbpalettetype\* palette);
+: Fills the *rgbpalettetype* structure pointed by *palette* with
+information about the current ARGB palette's size and colours.
 
 void *getrightclick* (void);
 : Waits for the right mouse button to be clicked and released.
@@ -747,13 +771,15 @@ void *sdlbgislow* (void);
 : Triggers *slow mode* i.e. *refresh*() is not needed to
   display graphics.
 
+void *setallrgbpalette* (struct rgbpalettetype \*palette);
+: Sets the current ARGB palette to the values given in *palette*.
+
 void *setalpha* (int col, Uint8 alpha);
-: Sets alpha transparency for colour *col* to *alpha* (0--255); 0
+: Sets alpha transparency for colour *col* to *alpha* (0-255); 0
   means full transparecy, 255 full opacity.
 
 void *setbkrgbcolor* (int color);
-: Sets the current background colour using the *n*-th colour entry in
-  the ARGB palette.
+: Sets the current background colour in the ARGB palette.
 
 void *setblendmode* (int blendmode);
 : Sets the blend mode to be used with screen refresh.
@@ -762,11 +788,10 @@ void *setcurrentwindow* (int id);
 : Sets the current active window to *id*.
 
 void *setrgbcolor* (int color);
-: Sets the current drawing colour using the *n*-th colour entry in the
-  ARGB palette.
+: Sets the current drawing colour in the ARGB palette.
 
 void *setrgbpalette* (int colornum, int red, int green, int blue);
-: Sets the *n*-th entry in the ARGB palette specifying the *r*,
+: Sets the *colornum* entry in the ARGB palette specifying the *r*,
   *g*, and *b* components.
 
 void *setwinoptions* (char \*title, int x, int y, Uint32 flags);
@@ -806,14 +831,11 @@ will be performed.
 use the same RGB values as Turbo C 2.01.
 
 
-# BUGS
+# KNOWN BUGS
 
 - Visualisation problems on NVIDIA GK208BM (GeForce 920M) with 
 nvidia-driver-\* on GNU/Linux. As far as I can say, this is an NVIDIA
 driver problem.
-
-- On MSYS2 + Mingw-w64, the *getch*() function may hang. Apparently,
-this is a problem in MSYS2/Mingw-w64 console handling.
 
 - On Raspios 10 ARM, the letter 'p' is drawn incorrectly in
 SCRIPT_FONT. This bug does not affect Raspios 10 i386.

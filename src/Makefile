@@ -56,9 +56,10 @@ $(info )
 # C compiler: tested with gcc and clang
 CC = gcc
 # -Wextra
-CFLAGS = -O2 -std=gnu99 -g -c -Wall -I $(INC_DIR) -I $(SDL_INC) $(PIC)
+CFLAGS = -O2 -std=gnu99 -g -c -Wall \
+	-I $(INC_DIR) -I $(SDL_INC) $(PIC)
 
-.PHONY : all
+.PHONY: all
 all: $(LIB)
 
 $(OBJ):	$(SRC) $(FONTS) $(HEADER1)

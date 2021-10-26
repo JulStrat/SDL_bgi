@@ -24,7 +24,7 @@ You're now ready to compile `SDL_bgi`.
 To compile and install `SDL_bgi`, start Terminal and run the following
 commands:
 
-    % VERSION=2.4.4
+    % VERSION=2.5.0
     % tar xvf SDL_bgi-$VERSION.tar
     % cd SDL_bgi-$VERSION/src
     % make

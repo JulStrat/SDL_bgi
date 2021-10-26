@@ -14,11 +14,11 @@ Dev-C++; we will use `fern.c`, provided in the `test/` directory.
 
 Let's assume that Dev-C++ is installed in `C:\Dev-Cpp`, and that the
 SDL2 development libraries for MinGW are installed in
-`C:\SDL2-2.0.14`. If you installed the software in different
+`C:\SDL2-2.0.16`. If you installed the software in different
 directories, change the following instructions accordingly.
 
 The procedure was tested with Orwell Dev-Cpp 5.11, TDM64-GCC 9.2.0,
-and SDL2-devel-2.0.14-mingw.tar.gz.
+and SDL2-devel-2.0.16-mingw.tar.gz.
 
 Links:
 
@@ -62,10 +62,10 @@ Installing `SDL_bgi`
   `C:\Dev-Cpp\MinGW64\lib`
 
 - copy `src/SDL_bgi.h` to\
-  `C:\SDL2-2.0.14\x86_64-w64-mingw32\include\SDL2`
+  `C:\SDL2-2.0.16\x86_64-w64-mingw32\include\SDL2`
 
 - copy `src/graphics.h` to\
-  `C:\SDL2-2.0.14\x86_64-w64-mingw32\include`
+  `C:\SDL2-2.0.16\x86_64-w64-mingw32\include`
 
 
 How to compile
@@ -86,16 +86,16 @@ How to compile
   `C:\Dev-Cpp\MinGW64\lib`
 
 - tab `Directories`, tab `Include Directories`: add\
-  `C:\SDL2-2.0.14\x86_64-w64-mingw32\include\SDL2` and\
-  `C:\SDL2-2.0.14\x86_64-w64-mingw32\include`
+  `C:\SDL2-2.0.16\x86_64-w64-mingw32\include\SDL2` and\
+  `C:\SDL2-2.0.16\x86_64-w64-mingw32\include`
 
 - tab `Library Directories`: add\ 
-  `C:\SDL2-2.0.14\x86_64-w64-mingw32\lib` and\
+  `C:\SDL2-2.0.16\x86_64-w64-mingw32\lib` and\
   `C:\Dev-Cpp\MinGW64\lib` then click on Ok
 
 - compile the program: menu `Execute/Compile`
 
-- copy ``C:\SDL2-2.0.14\x86_64-w64-mingw32\bin\SDL2.dll` and\
+- copy ``C:\SDL2-2.0.16\x86_64-w64-mingw32\bin\SDL2.dll` and\
  `SDL_bgi.dll` to the same directory as `fern.exe`
 
 - run it: menu `Execute/Run`.

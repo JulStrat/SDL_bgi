@@ -1366,6 +1366,8 @@ void theend (void)
     for (col = 0; col < 256; col += 3) {
       setcolor (COLOR (col, col, col));
       outtextxy (xm, ym, "That's all, folks!");
+      outtextxy (xm + 1, ym + 1, "That's all, folks!");
+      outtextxy (xm - 1, ym - 1, "That's all, folks!");
       refresh ();
       if (ismouseclick (WM_RBUTTONDOWN)) {
 	closegraph ();
@@ -1397,7 +1399,7 @@ int main (int argc, char *argv[])
   
   init_sdlbgi ();
   sdlbgi_info ();
-  modedemo ();
+  // modedemo ();
   colordemo ();
   pixeldemo ();
   linedemo ();

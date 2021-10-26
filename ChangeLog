@@ -1,6 +1,27 @@
 Changelog
 ---------
 
+v. 2.5.0, 2021-09-20
+- fixed kbhit() bug on MSYS2 (at last!)
+- fixed minor bug in setallpalette()
+- fixed test/fern.c for TC compatibility
+- modified functions putpixel(), setbkcolor(), setcolor(), 
+  setfillpattern(), setfillstyle(), setpalette(), and setalpha() to
+  handle colours given as out of range numbers
+- modified setallpalette() and setfillstyle() to implement error checks
+  as in TC
+- simplified floodfill() function (implemented recursive version)
+- improved setpalette() to change currently drawn pixels
+- modified delay() to take events into account
+- modified resizepalette()
+- added getrgbpalette(), setallrgbpalette(), and RGBPALETTE()
+- added test program test/rgbpalette.c
+- implemented getwindowwidth() and getwindowheight() as macros for
+  WinBGIm compatibility
+- removed test program test/setpalette.c
+- updated Windows Makefiles to SDL2-2.0.16
+- documentation updates
+
 v. 2.4.4, 2021-05-04
 - fixed bug that affected floodfill() with fill patterns in rare cases
 - extended setcolor(col) to implement an undocumented TC feature; if
