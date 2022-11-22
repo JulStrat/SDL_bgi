@@ -1,6 +1,34 @@
 Changelog
 ---------
 
+v. 2.6.0, 2022-05-30
+
+- Emscripten support: unmodified SDL_bgi programs can be compiled to
+  WebAssembly embedded in html pages
+- added test/Makefile.emscripten, test/emcc.sh, doc/emscripten.md,
+  doc/emscripten.pdf
+- added support for "environment files" (Emscripten replacement for
+  environment variables)
+- added getclick(), doubleclick()
+- extended mouseclick()
+- update Windows Makefiles to SDL2-2.0.22
+
+v. 2.5.1, 2022-02-28
+
+- fixed bug in getch()
+- added copysurface(), lastkey()
+- added test/loadimage.c (demo for SDL2_image and copysurface());
+  added test/pdj.c (demo for lastkey())
+- modified build.sh to to run on GNU/Linux only; renamed as mkpkg.sh
+  to avoid confusion
+- added support for the tcc compiler (GNU/Linux only); added 
+  test/tccrun
+- modified CMakeList.txt
+- documentation: added doc/howto_AppImage.md, doc/howto_AppImage.pdf,
+  doc/README.md; minor updates
+- added doc/icon.png
+- update Windows Makefiles to SDL2-2.0.20
+
 v. 2.5.0, 2021-09-20
 - fixed kbhit() bug on MSYS2 (at last!)
 - fixed minor bug in setallpalette()
@@ -57,7 +85,7 @@ v. 2.4.1, 2020-08-08
 - implemented a 16-colour palette that uses the same RGB values as
   Turbo C. This palette is used if the environment variable
   SDL_BGI_PALETTE is set to "BGI"
-- extended 'setpalette()' to modify the default 16 colours too
+- extended setpalette() to modify the default 16 colours too
   (requested by Austin Hurst)
 - added initpalette() to restore the original 16 colours in the
   palette

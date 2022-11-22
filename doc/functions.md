@@ -1,11 +1,9 @@
-SDL_bgi functions and macros
-============================
+# SDL_bgi functions and macros
 
 This is a list of functions and macros provided by SDL_bgi.
 
 
-Standard BGI
-------------
+## Standard BGI
 
 void `arc` (int x, int y, int stangle, int endangle, int radius);
 
@@ -168,8 +166,7 @@ int `textheight` (char \*textstring);
 int `textwidth` (char \*textstring);
 
 
-SDL_bgi extensions
-------------------
+## SDL_bgi extensions
 
 int `ALPHA_VALUE` (int color);
 
@@ -178,8 +175,6 @@ int `BLUE_VALUE` (int color);
 int `COLOR` (int r, int g, int b);
 
 int `COLOR32`(Uint32 color);
-
-Uint32 `colorRGB` (int r, int g, int b) (macro)
 
 int `GREEN_VALUE`(int color);
 
@@ -195,6 +190,12 @@ void `_putpixel` (int x, int y);
 
 void `closewindow` (int id);
 
+Uint32 `colorRGB` (int r, int g, int b) (macro)
+
+void `copysurface` (SDL_Surface \*surface, int x1, int y1, int x2, int y2);
+
+int `doubleclick` (void);
+
 int `event` (void);
 
 int `eventtype` (void);
@@ -202,6 +203,8 @@ int `eventtype` (void);
 void `getbuffer` (Uint32 \*buffer);
 
 int `getcurrentwindow` (void);
+
+int `getclick` (void);
 
 int `getevent` (void);
 
@@ -221,7 +224,7 @@ void `getrgbpalette` (struct rgbpalettetype \*, int size);
 
 void `getrightclick` (void);
 
-void `getscreensize` (int *x, int *y);
+void `getscreensize` (int \*x, int \*y);
 
 int `getwindowheight` (void) (macro)
 
@@ -247,7 +250,7 @@ void `readimagefile` (char \*filename, int x1, int y1, int x2, int y2);
 
 void `refresh` (void);
 
-void `resetwinoptions` (int id, char *title, int x, int y);
+void `resetwinoptions` (int id, char \*title, int x, int y);
 
 int  `resizepalette` (Uint32);
 
@@ -275,25 +278,26 @@ void `setwinoptions` (char \*title, int x, int y, Uint32 flags);
 
 void `setwintitle` (int id, char \*title);
 
-void `showerrorbox` (const char *message);
+void `showerrorbox` (const char \*message);
 
-void `showinfobox` (const char *message);
+void `showinfobox` (const char \*message);
 
 void `swapbuffers` (void);
 
 void `writeimagefile` (char \*filename, int left, int top, int right, int bottom);
 
 
-Non graphics functions
-----------------------
+## Non graphics functions
 
 void `delay` (int millisec) // DOS.H
 
 int `edelay` (int msec);
 
-int `getch` (void); // CONIO.H
+int `getch` (void) (macro) // CONIO.H
 
-int `kbhit` (void); (macro) // CONIO.H
+int `kbhit` (void) (macro) // CONIO.H
+
+int `lastkey` (void);
 
 int `random` (int range) (macro) // STDLIB.H
 

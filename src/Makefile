@@ -1,5 +1,6 @@
 # Makefile for SDL_bgi
-# For GNU/Linux, macOS, and MSYS2 + Mingw
+# For GNU/Linux, macOS, and MSYS2 + MinGW-64
+# Latest update: May 28, 2022
 
 VERSION := $(shell cat ../VERSION)
 NAME    = SDL_bgi
@@ -40,7 +41,8 @@ endif
 # MSYS2
 msys := $(findstring _NT, $(PLATFORM))
 ifeq ($(msys),_NT)
-PLATFORM = MSYS
+PLATFORM = MSYS2
+# use native MinGW-64 SDL2 packages
 INC_DIR = /mingw64/include
 SDL_INC = $(INC_DIR)/SDL2
 LIB_DIR = /mingw64/bin
@@ -53,8 +55,12 @@ endif
 $(info *** Building on $(PLATFORM) ***)
 $(info )
 
-# C compiler: tested with gcc and clang
+# C compiler: tested with gcc, clang, and tcc
+# tcc is supported on GNU/Linux only
+# CC = tcc -D SDL_DISABLE_IMMINTRIN_H
 CC = gcc
+# if you experience keyboard bugs on MSYS2:
+# CC = gcc -DMINGW_BUG
 # -Wextra
 CFLAGS = -O2 -std=gnu99 -g -c -Wall \
 	-I $(INC_DIR) -I $(SDL_INC) $(PIC)
@@ -69,18 +75,40 @@ $(LIB): $(OBJ)
 	$(CC) -shared -o $(LIB) $(OBJ) $(LDFLAGS) ; \
 	$(STRIP) $(LIB)
 
+ifdef EMSDK
+
+EMINCLUDE=$(EMSDK)/upstream/emscripten/cache/sysroot/include
+EMLIB=$(EMSDK)/upstream/emscripten/cache/sysroot/lib/wasm32-emscripten
+
+wasm: # tested on GNU/Linux only!
+	emcc -std=gnu99 -O2 -Wall $(SRC) \
+	-s USE_SDL=2 -c -o $(NAME).bc ; \
+	emar rcs lib$(NAME).a $(NAME).bc ; \
+	/usr/bin/install -m 644 $(HEADER2) $(EMINCLUDE) ; \
+	/usr/bin/install -m 644 $(HEADER1) $(EMINCLUDE)/SDL2 ; \
+	/usr/bin/install -m 644 lib$(NAME).a $(EMLIB)
+unwasm:
+	/bin/rm -f $(EMINCLUDE)/$(HEADER2) ; \
+	/bin/rm -f $(EMINCLUDE)/SDL2/$(HEADER1) ; \
+	/bin/rm -f $(EMLIB)/lib$(NAME).a
+
+endif
+
 install: $(LIB) $(HEADER1)
-	install -m 755 $(LIB) $(LIB_DIR) ; \
-	install -m 644 $(HEADER1) $(SDL_INC) ; \
-	install $(HEADER2) $(INC_DIR)
+	/usr/bin/install -m 755 $(LIB) $(LIB_DIR) ; \
+	/usr/bin/install -m 644 $(HEADER1) $(SDL_INC) ; \
+	/usr/bin/install $(HEADER2) $(INC_DIR)
 
 uninstall:
-	rm -f $(SDL_INC)/$(HEADER1) ; \
-	rm -f $(INC_DIR)/$(HEADER2)
-	rm -f $(LIB_DIR)/$(LIB)
+	/bin/rm -f $(SDL_INC)/$(HEADER1) ; \
+	/bin/rm -f $(INC_DIR)/$(HEADER2) ; \
+	/bin/rm -f $(LIB_DIR)/$(LIB)
 
 test: all
 	cd ../test; make
 
 clean:
-	rm -f $(OBJ) $(LIB) a.out
+	/bin/rm -f $(OBJ) $(LIB) a.out *.bc *.a *~
+
+
+# --- end of Makefile

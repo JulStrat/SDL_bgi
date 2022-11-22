@@ -9,5 +9,7 @@ These are helper programs:
 - `dumpchar.c` is used to dump VGA characters used by Turbo C 2.01 in
   DosBox.
 
+- `icon.c` writes the `icon.bmp` icon, later converted to PNG.
+
 - `truncate.c` shows a bug in Turbo C 2.01; text is not truncated out
   of the viewport as it should be. This bug is fixed in Turbo C++ 3.

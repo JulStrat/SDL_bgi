@@ -38,7 +38,7 @@ int main (int argc, char *argv[])
   printf ("Current window: %d\n", win1);
   x = getmaxx () - 110;
   y = getmaxy () - 60;
-  readimagefile ("logo.bmp", x, y, x + 100, y + 50);
+  readimagefile ("./logo.bmp", x, y, x + 100, y + 50);
   getevent ();
   delay (500);
   
@@ -50,7 +50,7 @@ int main (int argc, char *argv[])
   circle (100, 100, 50);
   win2 = getcurrentwindow ();
   printf ("Current window: %d\n", win2);
-  readimagefile ("logo.bmp", x, y, x + 100, y + 50);
+  readimagefile ("./logo.bmp", x, y, x + 100, y + 50);
   getevent ();
   delay (500);
 
@@ -64,7 +64,7 @@ int main (int argc, char *argv[])
   printf ("Current window: %d\n", win3);
   x = getmaxx () - 110;
   y = getmaxy () - 60;
-  readimagefile ("logo.bmp", x, y, x + 100, y + 50);
+  readimagefile ("./logo.bmp", x, y, x + 100, y + 50);
   getevent ();
   delay (500);
   
@@ -73,8 +73,10 @@ int main (int argc, char *argv[])
   circle (150, 100, 50);
   win1 = getcurrentwindow ();
   printf ("Current window: %d\n", win1);
+  setcolor (YELLOW);
   outtextxy (0, 10, "Back to the FIRST window; press a key");
   getevent ();
+  setcolor (RED);
   outtextxy (0, 20, "Shutting down...");
   
   setwintitle (win3, "Window 3 is shutting down...");

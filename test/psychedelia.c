@@ -69,11 +69,11 @@ int main (int argc, char **argv)
 
   showinfobox ("Left click to switch between\n"
 	       "putbuffer() and putpixel();\n"
-	       "any key to stop.");
+	       "right click to stop.");
 
   int time = SDL_GetTicks ();
 
-  while (! xkbhit()) {
+  while (! ismouseclick (WM_RBUTTONDOWN)) {
 
     int
       maxx = getmaxx (),
@@ -131,7 +131,7 @@ int main (int argc, char **argv)
     if (k3 < 2 || k3 > 255)
       d3 *= -1;
 
-    if (1 == mouseclick()) {
+    if (WM_LBUTTONDOWN == mouseclick()) {
       use_buffer ^= 1;
       if (use_buffer)
 	puts ("Using putbuffer()");

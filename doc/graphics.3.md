@@ -1,6 +1,6 @@
-% GRAPHICS(3) SDL_bgi 2.5.0
+% GRAPHICS(3) SDL_bgi 2.6.0
 % \ 
-% September 2021
+% May 2022
 
 [1]: # To turn this file to manpage:
 [2]: # pandoc -s -t man graphics.3.md -o graphics.3
@@ -421,7 +421,7 @@ void *getlinesettings* (struct linesettingstype \*lineinfo);
 
 int *getmaxcolor* (void);
 : Returns the maximum colour value available (*MAXCOLORS*). If ARGB 
-  colours are being used, it returns *PALETTE\_SIZE*.
+  colours are being used, it returns *PALETTE\_SIZE* (default 4096).
 
 int *getmaxmode* (void);
 : Returns the maximum mode number for the current driver. In *SDL_bgi*,
@@ -498,6 +498,9 @@ int *installuserfont* (char \*name);
 int *kbhit* (void);
 : Returns 1 when a key is pressed, excluding special keys (Ctrl, Shift,
   etc.)
+
+int *lastkey* (void);
+: Returns the last key that was detected by *kbhit*().
 
 void *line* (int x1, int y1, int x2, int y2);
 : Draws a line between two specified points.
@@ -636,10 +639,6 @@ int *COLOR32* (Uint32 color);
   *setcolor*(), *setbkcolor*(), *setfillpattern*(), and *setfillstyle*()
   to set a colour as ARGB integer.
 
-Uint32 *colorRGB* (int r, int g, int b) (macro)
-: Can be used to compose a 32 bit colour with *r* *g* *b*
-  components.
-
 int *GREEN_VALUE* (int color);
 : Returns the green component of *color* in the ARGB palette.
 
@@ -665,6 +664,16 @@ void *\_putpixel* (int x, int y);
 void *closewindow* (int id);
 : Closes the window identified by *id*.
 
+Uint32 *colorRGB* (int r, int g, int b) (macro)
+: Can be used to compose a 32 bit colour with *r* *g* *b*
+  components.
+
+void *copysurface* (SDL_Surface \*surface, int x1, int y1, int x2, int y2);
+: Copies *surface* to the rectangle defined by *x1*, *y1*, *x2*, *y2*.
+
+int *doubleclick* (void);
+: Returns 1 if the last mouse click was a double click.
+
 int *edelay* (int msec);
 : Waits for *msec* milliseconds. This function returns 1 if an event
   occurs during the delay, otherwise it returns 0.
@@ -680,12 +689,15 @@ int *eventtype* (void);
 void *getbuffer* (Uint32 *buffer);
 : Copies the contents of the active window to *buffer*.
 
+int *getclick* (void);
+: Waits for a mouse button click and returns its code.
+
 int *getcurrentwindow* (void);
 : Returns the *id* of the current window.
 
 int *getevent* (void);
 : Waits for a keypress, mouse click, or *SDL_QUIT* event, and returns
-  the code of the key, mouse button, or *SDL_QUIT*
+  the code of the key, mouse button, or *SDL_QUIT*.
 
 void *getleftclick* (void);
 : Waits for the left mouse button to be clicked and released.
@@ -704,8 +716,8 @@ int *getmaxwidth* (void);
 void *getmiddleclick* (void);
 : Waits for the middle mouse button to be clicked and released.
 
-void *getmouseclick* (int kind, int \*x, int \*y);
-: Sets the *x*, *y* coordinates of the last *kind* button click
+void *getmouseclick* (int btn, int \*x, int \*y);
+: Sets the *x*, *y* coordinates of the last *btn* button click
   expected by *ismouseclick*().
 
 void *getrgbpalette* (struct rgbpalettetype\* palette);
@@ -724,14 +736,14 @@ void *initpalette* (void);
 
 int *initwindow* (int width, int height);
 : Initializes the graphics system, opening a *width* x *height*
-  window.
+  window. Set *width* or *height* equal to 0 to get fullscreen.
 
-int *ismouseclick* (int kind);
-: Returns 1 if the *kind* mouse button was clicked.
+int *ismouseclick* (int btn);
+: Returns 1 if the *btn* mouse button was clicked.
 
 int *mouseclick* (void);
-: Returns the code of the mouse button that was clicked, or 0 if none
-  was clicked.
+: Returns the code of the mouse button that is being clicked, or 
+  *SDL_MOUSEMOTION*, or 0.
 
 int *mousex* (void);
 : Returns the *X* coordinate of the last mouse click.
@@ -822,13 +834,17 @@ int *xkbhit* (void);
 # ENVIRONMENT
 
 *SDL_BGI_RES*: when set to *VGA*, default resolution will be 640
-x 480 instead of 800 x 600.
+x 480 instead of default 800 x 600.
 
 *SDL_BGI_RATE*: when set to *auto*, automatic screen refresh
 will be performed.
 
 *SDL_BGI_PALETTE*: when set to *BGI*, the first 16 colours will
 use the same RGB values as Turbo C 2.01.
+
+Compiling programs with *emscripten*, variables *SDL_BGI_RES* and
+*SDL_BGI_PALETTE* can be replaced by files by the same name, possibly
+containing the strings *VGA* and *BGI*.
 
 
 # KNOWN BUGS
@@ -866,17 +882,48 @@ int main (int argc, char *argv[])
 }
 ```
 
-To compile this  program on GNU/Linux, macOS or Raspios:
+To compile this  program on GNU/Linux, macOS, or Raspios:
 
 ```
 $ gcc -o program program.c -lSDL_bgi -lSDL2
 ```
 
-To compile this program in MSYS2 + mingw-w64:
+To compile this program on MSYS2 + mingw-w64:
 
 ```
 $ gcc -o program.exe program.c -lmingw32 -L/mingw64/bin \
   -lSDL_bgi -lSDL2main -lSDL2 # -mwindows
+```
+
+To compile this program to WebAssembly using *emcc*:
+
+```
+$ emcc --emrun -o program.html program.c -lSDL_bgi \
+    -std=gnu99 -O2 -Wall -lm \
+    -s USE_SDL=2 -s ALLOW_MEMORY_GROWTH=1 -s ASYNCIFY -s SINGLE_FILE
+```
+
+To initialise the graphics, you may try one of the following methods:
+
+```
+// open a 400x300 window
+initwindow (400, 300);
+
+// open a 400x300 window, setting position, title, and flags
+setwinoptions ("SDL_bgi window", 100, 100, SDL_WINDOW_BORDERLESS);
+initwindow (400, 300);
+
+// go fullscreen
+initwindow (0, 0);
+
+// go fullscreen or VGA if SDL_BGI_RES is set
+gd = DETECT;
+gm = getmaxmode ();
+initgraph(&gd, &gm, "");
+
+// go fullscreen with non native resolution
+setwinoptions ("", -1, -1, SDL_WINDOW_FULLSCREEN);
+initwindow (800, 600);
 ```
 
 # AUTHORS
@@ -889,8 +936,7 @@ Marco Diego Aurélio Mesquita, *marcodiegomesquita at gmail dot com*
 # LICENSE
 
 *SDL_bgi* is released under the ZLib License.
-
-Copyright (c) 2014-2021 Guido Gonzato, PhD
+opyright (c) 2014-2022 Guido Gonzato, PhD
 
 This software is provided 'as-is', without any express or implied
 warranty. In no event will the authors be held liable for any damages
@@ -907,4 +953,3 @@ freely, subject to the following restrictions:
 2. Altered source versions must be plainly marked as such, and must not be
    misrepresented as being the original software.
 3. This notice may not be removed or altered from any source distribution.
-

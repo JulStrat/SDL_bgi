@@ -308,13 +308,14 @@ int powerof2 (int ex)
 
 int main (int argc, char *argv[])
 {
-  int i, l, x, y, xc, stop = 0;
+  int
+    i, l, x, y, xc, stop = 0;
   char s[200];
 
-  initwindow (1024, 768);
+  initwindow (0, 0);
   setbkcolor (BLACK);
   setcolor (GREEN);
-
+  
   turtle_hello ();
   pause ();
   
@@ -350,7 +351,7 @@ int main (int argc, char *argv[])
     cleardevice ();
     setcolor (GREEN);
     outtextxy (0, 0, "Square Koch curve:");
-    setposition (0, getmaxy () / 2);
+    setposition (0, getmaxy () * 0.66);
     setheading (T_EAST);
     setcolor (i + 1);
     sq_koch (getmaxx () + 1, i);

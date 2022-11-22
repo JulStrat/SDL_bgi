@@ -58,7 +58,7 @@ int main (int argc, char *argv[])
     setrgbcolor (i);
     setfillstyle (SOLID_FILL, RGBPALETTE (i));
     bar (10, 10, 200, 200);
-    delay (50);
+    delay (20);
   }
   
   // save the ARGB palette
@@ -68,9 +68,9 @@ int main (int argc, char *argv[])
   getrgbpalette (&palette, MAX);
   cleardevice ();
   
-  // reset ARGB colours to dark gray
+  // reset ARGB colours to gray
   for (i = 0; i < MAX; i++)
-    setrgbpalette (i, 30, 30, 30);
+    setrgbpalette (i, 128, 128, 128);
 
   setcolor (WHITE);
   outtextxy (250, 100, "Grayed out ARGB colours...");
@@ -78,7 +78,7 @@ int main (int argc, char *argv[])
     setrgbcolor (i);
     setfillstyle (SOLID_FILL, RGBPALETTE (i));
     bar (10, 10, 200, 200);
-    delay (50);
+    delay (20);
   }
 
   // restore the ARGB palette
@@ -94,7 +94,7 @@ int main (int argc, char *argv[])
     setrgbcolor (i);
     setfillstyle (SOLID_FILL, RGBPALETTE (i));
     bar (10, 10, 200, 200);
-    delay (50);
+    delay (20);
   }
   setcolor (WHITE);
   outtextxy (250, 120, "Press a key to exit");

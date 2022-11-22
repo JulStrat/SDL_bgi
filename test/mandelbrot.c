@@ -3,7 +3,7 @@
  * To compile:
  * gcc -o mandelbrot mandelbrot.c -lSDL_bgi -lSDL2
  * 
- * By Guido Gonzato, May 2015
+ * By Guido Gonzato, May 2015-2022
  * 
  * This is an unoptimised, simple but effective program for plotting
  * the Mandelbrot set. Left click to zoom in on a point, right click
@@ -68,13 +68,6 @@ void mandelbrot (double x1, double y1, double x2, double y2)
 	counter++;
       } while (d <= 4.0 && counter < max_iter);
       
-      // 16 colour mode:
-      // int color;
-      // if (counter == max_iter)
-      //   color = BLACK;
-      // else
-      //   color = 1 + counter % 15;
-      
       setrgbcolor (counter);
       _putpixel (xx, yy);
       y += dy;
@@ -125,6 +118,19 @@ void blue_palette (void)
 
 // -----
 
+void help (void)
+{
+  showinfobox ("Press '1', '2', or '3' to change the palette\n"
+	       "left click to zoom in on a point\n"
+	       "right click to zoom out\n"
+	       "middle click or 'R' to restore the initial boundary\n"
+	       "'i' or '+', 'd' or '-' to increase/decrease max iterations\n"
+	       "arrow keys to move around\n"
+	       "'Q' to quit the program");
+} // help ()
+
+// -----
+
 void explain (void)
 {
   int
@@ -135,36 +141,34 @@ void explain (void)
   setbkcolor (COLOR (0, 0, 32)); // don't use a palette
   cleardevice ();
   setcolor (COLOR (255, 255, 0));
-  // setrgbpalette (0, 0, 0, 32);
-  // setrgbpalette (1, 255, 255, 0);
-  // setrgbcolor (1);
-  // setbkrgbcolor (0);
-  // cleardevice ();
-  // alternatively, use setrgbcolor() or setbkrgbcolor()
 
   settextstyle (TRIPLEX_FONT, HORIZ_DIR, 4);
   settextjustify (CENTER_TEXT, CENTER_TEXT);
   c = 2*textheight ("H");
+  outtextxy (maxx / 2, maxy / 2 - 4*c,
+	   "Press '1', '2', or '3' to change the palette");
   outtextxy (maxx / 2, maxy / 2 - 3*c,
-	   "Press '1', '2', or '3' to change the palette;");
+	   "left click to zoom in on a point");
   outtextxy (maxx / 2, maxy / 2 - 2*c,
-	   "left click to zoom in on a point;");
+	   "right click to zoom out");
   outtextxy (maxx / 2, maxy / 2 - c,
-	   "right click to zoom out;");
+	   "middle click or 'R' to restore the initial boundary");
   outtextxy (maxx / 2, maxy / 2,
-	   "middle click to restore the initial boundary;");
+	   "'i' or '+', 'd' or '-' to increase/decrease max iterations");
   outtextxy (maxx / 2, maxy / 2 + c,
-	   "'i' or '+', 'd' or '-' to increase/decrease max iterations;");
-  
+	   "arrow keys to move around");
   outtextxy (maxx / 2, maxy / 2 + 2*c,
-	   "arrow keys to move around;");
+	   "'H' to get help");
   
   outtextxy (maxx / 2, maxy / 2 + 3*c,
-	   "ESC to quit the program.");
+	   "'Q' to quit the program");
   
-  while (! event ()) {
+  int
+     ev;
+
+  while (1) {
   
-    setcolor(COLOR (i, 0, 0));
+    setcolor (COLOR (i, 0, 0));
     outtextxy (maxx / 2, maxy / 2 + 4*c, "PRESS A KEY OR CLICK TO BEGIN");
     i += inc;
     if (255 == i)
@@ -173,6 +177,12 @@ void explain (void)
       inc = 5;
     delay(1);
     refresh ();
+    
+    event ();
+    ev = eventtype ();
+    if (ev == SDL_KEYDOWN || ev == SDL_MOUSEBUTTONDOWN)
+      break;
+    
   }
   cleardevice ();
   
@@ -185,13 +195,11 @@ void explain (void)
 
 int main (int argc, char *argv[])
 {
-  int palette, c, init, redraw, flag;
+  int palette, ch, init, redraw, flag;
   double xm, ym, xstep, ystep, xmin, ymin, xmax, ymax;
   char s[20];
   
   initwindow (0, 0); // fullscreen
-  // setwinoptions ("", -1, -1, SDL_WINDOW_FULLSCREEN);
-  // initwindow (1024, 768);
   
   maxx = getmaxx ();
   maxy = getmaxy ();
@@ -199,8 +207,8 @@ int main (int argc, char *argv[])
   xm = -1.2;
   ym = 0.0;
   // initial range: xm +- xstep, ym +- ystep 
-  xstep = (double) maxx / (double) maxy;
   ystep = 1.2;
+  xstep = ystep * maxx / (double) maxy;
   init = flag = redraw = 1;
   
   explain ();
@@ -208,8 +216,8 @@ int main (int argc, char *argv[])
   purple_palette ();
   palette = 1;
   
-  c = 'G';
-  while (c != KEY_ESC) {
+  ch = 'G';
+  while (ch != 'q' && ch != 'Q') {
     
     xmin = xm - xstep;
     ymin = ym - ystep;
@@ -218,7 +226,6 @@ int main (int argc, char *argv[])
 
     if (redraw) {
       mandelbrot (xmin, ymin, xmax, ymax);
-      // added!
       refresh ();
       if (flag) {
 	setcolor (WHITE);
@@ -230,16 +237,19 @@ int main (int argc, char *argv[])
       redraw = 0;
     }
     
-    c = getevent (); // wait for a key, mouse click, or wheel motion
+    ch = getevent (); // wait for a key, mouse click, or wheel motion
     
-    switch (c) {
+    switch (ch) {
+      
+    case 'h':
+    case 'H':
+      help ();
+      break;
       
     case WM_LBUTTONDOWN:
     case WM_WHEELUP:
       xm = xmin + 2 * xstep * mousex () / maxx;
       ym = ymin + 2 * ystep * mousey () / maxy;
-      /* xm = xmin + (xmax - xmin) * mousex () / maxx; */
-      /* ym = ymin + (ymax - ymin) * mousey () / maxy; */
       xstep /= 2.0;
       ystep /= 2.0;
       init = 0;
@@ -255,11 +265,13 @@ int main (int argc, char *argv[])
       break;
       
     case WM_MBUTTONDOWN:
+    case 'r':
+    case 'R':
       if (0 == init) {
-	xm = -0.75;
-	ym = 0.0;
-	xstep = 1.6;
-	ystep = 1.2;
+        xm = -1.2;
+        ym = 0.0;
+        ystep = 1.2;
+        xstep = ystep * (double) maxx / (double) maxy;
 	redraw = 1;
       }
       break;
@@ -336,9 +348,9 @@ int main (int argc, char *argv[])
     
   } // while
 
+  closegraph ();
   return 0;
   
 } // main(void) ()
 
 // ----- end of file mandelbrot.c
-

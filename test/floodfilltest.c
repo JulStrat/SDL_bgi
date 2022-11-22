@@ -32,7 +32,7 @@ int main (int argc, char *argv[])
 
   int
     stop = 0,
-    p;
+    mclick;
   
   initwindow (800, 600);
   setbkcolor (BLACK);
@@ -46,30 +46,32 @@ int main (int argc, char *argv[])
 	     "right click to fill;");
   outtextxy (getmaxx() / 2, getmaxy () / 2 + 15, 
 	     "press a key to exit.");
-  refresh ();
+  
   getevent ();
+  
   cleardevice ();
   setcolor (YELLOW);
+  refresh ();
 
   while (! stop) {
   
-    if ((p = mouseclick ())) {
-      if (WM_LBUTTONDOWN == p) {
-	setcolor (YELLOW);
-	circle (mousex (), mousey (), random (100));
-	// added!
-	refresh ();
-      }
-      else 
-	if (WM_RBUTTONDOWN == p) {
-	  setcolor (random (MAXCOLORS));
-	  setfillstyle (1 + random(USER_FILL),
-			COLOR (random (255), random (255), random (255)));
-	  floodfill (mousex (), mousey (), YELLOW);
-	  refresh ();
-	}
+    mclick = getevent ();
+    
+    if (WM_LBUTTONDOWN == mclick) {
+      setcolor (YELLOW);
+      circle (mousex (), mousey (), 10 + random (100));
+      refresh ();
     }
-    if (xkbhit ())
+
+    if (WM_RBUTTONDOWN == mclick) {
+      setcolor (random (MAXCOLORS));
+      setfillstyle (1 + random(USER_FILL),
+		    COLOR (random (255), random (255), random (255)));
+      floodfill (mousex (), mousey (), YELLOW);
+      refresh ();
+    }
+
+    if (KEY_ESC == mclick)
       stop = 1;
     
   } // while

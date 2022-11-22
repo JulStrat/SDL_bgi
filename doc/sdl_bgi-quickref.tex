@@ -1,7 +1,7 @@
 % sdl_bgi-quickref.tex
 %
 % Guido Gonzato, PhD
-% September 14, 2021
+% May 28, 2022
 
 \documentclass[a4paper,12pt]{article}
 \usepackage{graphicx}
@@ -21,7 +21,7 @@
 \setlength{\parindent}{0pt}
 \setlength{\parskip}{3pt}
 
-\newcommand{\version}{2.5.0}        % !!! <<<=== Change here !!!
+\newcommand{\version}{2.6.0}        % !!! <<<=== Change here !!!
 
 \newcommand{\V}{\texttt{void}}      % void
 \newcommand{\I}{\texttt{int}}       % int
@@ -79,12 +79,13 @@
 
 \section{Introduction to \SDLbgi}
 
-\SDLbgi{} is a multiplatform, fast, SDL2-based implementation of BGI:
-the Borland Graphics Interface also known as \T{GRAPHICS.H}. BGI
-was a graphics library provided by Borland Turbo C / Borland C++
-compilers for DOS, and it was very popular in the late eighties--early
-nineties. It became the \emph{de facto} standard for computer
-graphics, especially in education. For more information, please see 
+\href{https://sdl_bgi.sourceforge.net}{\SDLbgi} is a multiplatform,
+fast, SDL2-based implementation of BGI: the Borland Graphics Interface
+also known as \T{GRAPHICS.H}. BGI was a graphics library provided by
+Borland Turbo C / Borland C++ compilers for DOS, and it was very
+popular in the late eighties--early nineties of the last century. It
+became the \emph{de facto} standard for computer graphics, especially
+in education. For more information, please see 
 \href{https://en.wikipedia.org/wiki/Borland_Graphics_Interface}{the
 Wikipedia article}.
 
@@ -100,12 +101,12 @@ Please see \href{http://www.codecutter.net/tools/winbgim}{this page}
 for more information on WinBGIm.
 
 \SDLbgi{} is one of the easiest libraries to do graphics programming
-in C. It is much simpler to use than SDL2, OpenGL and the like;
+in C. It is much simpler to use than plain SDL2, OpenGL and the like;
 obviously, it's less complete. Teachers may find \SDLbgi{} a useful
 tool for introductory computer graphics courses.
 
-This is a minimal program that opens a  window and draws 1000 random
-lines:
+For example, this is a minimal program that opens a  window and draws
+1000 random lines:
 
 \begin{small}
 \begin{spacing}{0.9}
@@ -115,7 +116,7 @@ lines:
 int main (int argc, char *argv[])
 {
   int i, gd = DETECT, gm;
-  initgraph (&gd, &gm, "C:\\TC\\BGI"); // default: 800 x 600
+  initgraph (&gd, &gm, ""); // default: 800 x 600
   setbkcolor (BLACK);
   cleardevice ();
   outtextxy (0, 0, "Drawing 1000 lines...");
@@ -148,6 +149,9 @@ and fill pattern, are defined. A viewport (subwindow) may also be
 defined, with or without clipping. All of these parameters can be
 changed using appropriate functions.
 
+\SDLbgi{} programs can be compiled to native code on several
+platforms, and also to WebAssembly using Emscripten.
+
 % -----
 
 \subsection{Constants}
@@ -168,13 +172,16 @@ aware of. The most important are the following:
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_keycode.h>
 #include <SDL2/SDL_mouse.h>
-
 #include <stdio.h>   // for fprintf()
 #include <stdlib.h>  // for exit(), calloc()
 #include <math.h>    // for sin(), cos()
 #include <string.h>  // for strlen(), memcpy()
 
-#define SDL_BGI_VERSION 2.5.0
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+
+#define SDL_BGI_VERSION 2.6.0
 
 enum { NOPE, YEAH } ;
 #define BGI_WINTITLE_LEN 512 // more than enough
@@ -278,15 +285,25 @@ enum {
   USER_FILL         // user defined fill
 };
 
-// mouse buttons
+// mouse events - compatible with WinBGIm
 
-#define WM_LBUTTONDOWN  SDL_BUTTON_LEFT
-#define WM_MBUTTONDOWN  SDL_BUTTON_MIDDLE
-#define WM_RBUTTONDOWN  SDL_BUTTON_RIGHT
-#define WM_WHEEL        SDL_MOUSEWHEEL
-#define WM_WHEELUP      SDL_USEREVENT
-#define WM_WHEELDOWN    SDL_USEREVENT + 1
-#define WM_MOUSEMOVE    SDL_MOUSEMOTION
+#define WM_MOUSEMOVE       SDL_MOUSEMOTION
+
+#define WM_LBUTTONDOWN     SDL_BUTTON_LEFT
+#define WM_LBUTTONUP       SDL_MOUSEBUTTONUP   + SDL_BUTTON_LEFT
+#define WM_LBUTTONDBLCLK   SDL_MOUSEBUTTONDOWN + SDL_BUTTON_LEFT + 2
+
+#define WM_MBUTTONDOWN     SDL_BUTTON_MIDDLE
+#define WM_MBUTTONUP       SDL_MOUSEBUTTONUP   + 10*SDL_BUTTON_MIDDLE
+#define WM_MBUTTONDBLCLK   SDL_MOUSEBUTTONDOWN + 10*SDL_BUTTON_MIDDLE + 2
+
+#define WM_RBUTTONDOWN     SDL_BUTTON_RIGHT
+#define WM_RBUTTONUP       SDL_MOUSEBUTTONUP   + 20*SDL_BUTTON_RIGHT
+#define WM_RBUTTONDBLCLK   SDL_MOUSEBUTTONDOWN + 20*SDL_BUTTON_RIGHT + 2
+
+#define WM_WHEEL           SDL_MOUSEWHEEL
+#define WM_WHEELUP         SDL_BUTTON_RIGHT + 1
+#define WM_WHEELDOWN       SDL_BUTTON_RIGHT + 2
 
 // keys
 #define KEY_HOME        SDLK_HOME
@@ -387,6 +404,29 @@ enum graphics_errors {
   grInvalidVersion   = -18
 };
 
+// libXbgi compatibility
+
+#define X11_CGALO       SDL_CGALO
+#define X11_CGAHI       SDL_CGAHI
+#define X11_EGA         SDL_EGA
+#define X11             SDL
+#define X11_VGA         SDL_VGA
+#define X11_640x480     SDL_640x480
+#define X11_HERC        SDL_HERC
+#define X11_PC3270      SDL_PC3270
+#define X11_SVGALO      SDL_SVGALO
+#define X11_800x600     SDL_800x600
+#define X11_SVGAMED1    SDL_SVGAMED1
+#define X11_1024x768    SDL_1024x768
+#define X11_SVGAMED2    SDL_SVGAMED2
+#define X11_1152x900    SDL_1152x900
+#define X11_SVGAHI      SDL_SVGAHI
+#define X11_1280x1024   SDL_1280x1024
+#define X11_WXGA        SDL_WXGA
+#define X11_1366x768    SDL_1366x768
+#define X11_USER        SDL_USER
+#define X11_FULLSCREEN  SDL_FULLSCREEN
+
 // structs
 
 struct arccoordstype {
@@ -450,7 +490,7 @@ struct viewporttype {
 \subsection{Environment Variables}
 
 \T{SDL\_BGI\_RES}: when set to \T{VGA}, default resolution will be 640
-$\times$ 480 instead of 800 $\times$ 600. Please see
+$\times$ 480 instead of default 800 $\times$ 600. Please see
 \func{initgraph()} (page \pageref{sec:initgraph}) for details.
 
 \T{SDL\_BGI\_RATE}: when set to \T{auto}, automatic screen refresh
@@ -517,7 +557,7 @@ accessible to the programmer:
 SDL_Window   *bgi_window;
 SDL_Renderer *bgi_renderer;
 SDL_Texture  *bgi_texture;
-extern Uint32 PALETTE_SIZE;
+Uint32       PALETTE_SIZE;
 \end{verbatim}
 \end{spacing}
 \end{small}
@@ -539,6 +579,8 @@ SDL_RenderPresent (bgi_renderer);
 \end{verbatim}
 \end{spacing}
 \end{small}
+
+Please see \file{test/loadimage.c} for a complete example.
 
 % -----
 
@@ -647,7 +689,8 @@ The CP is moved to (0, 0), relative to the viewport.
 \V{} \func{closegraph} (\V{});
 \end{bgi}
 
-Closes the graphics system.
+Closes the graphics system. In Emscripten, it closes the browser tab
+or window.
 
 % -----
 
@@ -1133,8 +1176,7 @@ an integer value \A{msec}, automatic screen refresh will be performed
 every \A{msec} milliseconds.
 
 Automatic screen refresh is much faster than the default behaviour;
-however, it is an experimental feature that may not work on some
-graphic cards.
+however, this feature may not work on some graphic cards.
 
 % -----
 
@@ -1643,6 +1685,17 @@ etc.); in ``slow mode'', a screen refresh is performed. If an
 
 % -----
 
+\addcontentsline{toc}{subsection}{\T{lastkey()}}
+\phantomsection\label{sec:lastkey}
+
+\begin{bgi}
+\I{} \func{lastkey} (\V{});
+\end{bgi}
+
+Returns the last key that was detected by \func{kbhit()}.
+
+% -----
+
 \addcontentsline{toc}{subsection}{\T{random()}}
 \phantomsection\label{sec:random}
 
@@ -1695,16 +1748,16 @@ Returns the blue component of an ARGB colour in the ARGB palette.
 \I{} \func{COLOR} (\I{} \A{r}, \I{} \A{g}, \I{} \A{b});
 \end{bgi}
 
-Can be used as colour argument for \func{getbkcolor()},
-\func{getcolor()}, \func{putpixel()}, \func{setbkcolor()}
-\func{setbkcolor()}, \func{setcolor()}, \func{setfillpattern()},
-\func{setfillstyle()} and \func{setpalette()} to set a colour
+Can be used as colour argument for \func{getbkcolor()},\ 
+\func{getcolor()},\ \func{putpixel()},\ \func{set\-bkcolor()}
+\func{setbkcolor()},\ \func{setcolor()},\ \func{setfillpattern()},
+\func{setfillstyle()},\ and \func{setpalette()}\ to set a colour
 specifying its ARGB components. The colour index is
 \T{ARGB\_TMP\_COL}.
 
 Functions \func{ALPHA\_VALUE()}, \func{BLUE\_VALUE()},
-\func{GREEN\_VALUE()}, and \func{RED\_VALUE()} do not work on temporary
-colours.
+\func{GREEN\_VALUE()}, and \func{RED\_VALUE()} do not work on
+temporary colours.
 
 % -----
 
@@ -1715,15 +1768,15 @@ colours.
 \I{} \func{COLOR32} (\I{} \Ut{color});
 \end{bgi}
 
-Can be used as colour argument for \func{getbkcolor()},
-\func{getcolor()}, \func{putpixel()}, \func{setbkcolor()}
-\func{setbkcolor()}, \func{setcolor()}, \func{setfillpattern()},
-\func{setfillstyle()} and \func{setpalette()} to set a colour as ARGB
-integer. The colour index is \T{ARGB\_TMP\_COL}.
+Can be used as colour argument for \func{getbkcolor()},\ 
+\func{getcolor()},\ \func{putpixel()},\ \func{set\-bkcolor()},\ 
+\func{setcolor()},\ \func{setfillpattern()},\ \func{setfillstyle()},\
+and \func{setpalette()} to set a colour as ARGB integer. The colour
+index is \T{ARGB\_TMP\_COL}.
 
 Functions \func{ALPHA\_VALUE()}, \func{BLUE\_VALUE()},
-\func{GREEN\_VALUE()}, and \func{RED\_VALUE()} do not work on temporary
-colours.
+\func{GREEN\_VALUE()}, and \func{RED\_VALUE()} do not work on
+temporary colours.
 
 % -----
 
@@ -1829,6 +1882,28 @@ Closes the window identified by \A{id}.
 
 % -----
 
+\addcontentsline{toc}{subsection}{\T{copysurface()}}
+\phantomsection\label{sec:copysurface}
+
+\begin{bgi}
+\V{} \func{copysurface} (\T{SDL\_Surface} \A{surface}, 
+\I{} \A{x1}, \I{} \A{y1}, \I{} \A{x2}, \I{} \A{y2});
+\end{bgi}
+
+Copies \A{surface} to the rectangle defined by \A{x1}, \A{y1}, \A{x2},
+\A{y2} and displays it immediately. If \A{x2} or \A{y2} equals 0, then
+the original surface size will be used. 
+
+% -----
+
+\begin{bgi}
+\I{} \func{doubleclick} (\V{});
+\end{bgi}
+
+Returns 1 if the last mouse click was a double click.
+
+% -----
+
 \begin{bgi}
 \I{} \func{edelay} (\I{} \A{msec});
 \end{bgi}
@@ -1847,8 +1922,9 @@ event.
 \I{} \func{event} (\V{});
 \end{bgi}
 
-Returns 1 if an event (mouse click, key press, or \T{SDL\_QUIT}) has
-occurred.
+Returns 1 if one of the following events has occurred:
+\T{SDL\_KEYDOWN}, \T{SDL\_MOU\-SEBUT\-TONDOWN}, \T{SDL\_MOUSEWHEEL},
+or \T{SDL\_QUIT}; 0 otherwise.
 
 % -----
 
@@ -1859,8 +1935,9 @@ occurred.
 \I{} \func{eventtype} (\V{});
 \end{bgi}
 
-Returns the type of the last event; either \T{SDL\_KEYPRESS} or
-\T{SDL\_MOUSEBUTTONDOWN}.
+Returns the type of the last event. Reported events are
+\T{SDL\_KEYDOWN}, \T{SDL\_MOUSEMOTION}, \T{SDL\_MOUSEBUTTONDOWN},
+\T{SDL\_MOUSEBUTTONUP}, \T{SDL\_MOUSEWHEEL}, and \T{SDL\_QUIT}.
 
 % -----
 
@@ -1874,6 +1951,17 @@ Returns the type of the last event; either \T{SDL\_KEYPRESS} or
 Copies the contents of the active window to \A{buffer}, which must be
 a (\func{getmaxy() + 1}) $\times$ (\func{getmaxx() + 1}) array of
 \A{Uint32}. Copied elements are in ARGB format.
+
+% -----
+
+\addcontentsline{toc}{subsection}{\T{getclick()}}
+\phantomsection\label{sec:getclick}
+
+\begin{bgi}
+\I{} \func{getclick} (\V{});
+\end{bgi}
+
+Waits for a mouse click and returns the button that was clicked.
 
 % -----
 
@@ -1895,8 +1983,10 @@ Returns the \A{id} of the current window.
 \I{} \func{getevent} (\V{});
 \end{bgi}
 
-Waits for a keypress, mouse click, or \T{SDL\_QUIT} event, and returns
-the code of the key, mouse button, or \T{QUIT}.
+Waits for one of the following events: \T{SDL\_KEYDOWN},
+\T{SDL\_MOUSEBUTTONDOWN}, \T{SDL\_MOU\-SEWHEEL}, and \T{SDL\_QUIT}. It
+returns the code of the key, or the mouse button, either 
+\T{WM\_WHEELUP} or \T{WM\_WHEELDOWN}, or \T{SDL\_QUIT}.
 
 % -----
 
@@ -2079,8 +2169,9 @@ Returns 1 if the \A{kind} mouse button was clicked.
 \I{} \func{mouseclick} (\V{});
 \end{bgi}
 
-Returns the code of the mouse button that was clicked, or 0 if none
-was clicked.
+Returns the code of the mouse button that is being clicked, or
+\T{SDL\_MOUSEMOTION} if the mouse is being moved, or 0 if no mouse
+event is occurring.
 
 % -----
 

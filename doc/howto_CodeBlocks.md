@@ -14,11 +14,11 @@ CodeBlocks; we will use `fern.c`, provided in the `test/` directory.
 
 Let's assume that CodeBlocks is installed in `C:\CodeBlocks`, and that
 the SDL2 development libraries for MinGW are installed in
-`C:\SDL2-2.0.16`. If you installed the software in different
+`C:\SDL2-2.0.22`. If you installed the software in different
 directories, change the following instructions accordingly.
 
-The procedure was tested with CodeBlocks 20.02 and
-SDL2-devel-2.0.16-mingw.tar.gz.
+The procedure was tested with CodeBlocks 20.03 and
+SDL2-devel-2.0.22-mingw.tar.gz.
 
 Links:
 
@@ -34,10 +34,10 @@ Installing `SDL_bgi`
  `C:\CodeBlocks\MinGW\bin`
 
 - copy `SDL_bgi.h` to\
- `C:\SDL2-2.0.16\x86_64-w64-mingw32\include\SDL2`
+ `C:\SDL2-2.0.22\x86_64-w64-mingw32\include\SDL2`
 
 - copy `graphics.h` to\
- `C:\SDL2-2.0.16\x86_64-w64-mingw32\include`
+ `C:\SDL2-2.0.22\x86_64-w64-mingw32\include`
 
 
 How to compile
@@ -51,7 +51,7 @@ How to compile
   store the project, then click on `Next>`
 
 - in the next window (SDL2 location), pick 
-  `C:\SDL2-2.0.16\x86_64-w64-mingw32`, then click on `Next>`
+  `C:\SDL2-2.0.22\x86_64-w64-mingw32`, then click on `Next>`
 
 - in the next window, uncheck `Create "Debug" configuration`, check
  `Create "Release" configuration`, then click on `Finish`
@@ -64,13 +64,13 @@ How to compile
 
 - from the menu `Project/Build options...` select the `Search
   directories` tab, click on `Add`, pick the directory\
-  `C:\SDL2-2.0.16\x86_64-w64-mingw32\include`, then select `No` when
+  `C:\SDL2-2.0.22\x86_64-w64-mingw32\include`, then select `No` when
   asked to `Keep this as a relative path?`. Click on `Ok`
 
 - from the menu `Project/Build options...` select the `Linker
   settings` tab, click on `Add`, pick the files\
   `C:\CodeBlocks\MinGW\bin\SDL_bgi.dll` and\
-  `C:\SDL2-2.0.16\x86_64-w64-mingw32\bin\SDL2.dll`, then select
+  `C:\SDL2-2.0.22\x86_64-w64-mingw32\bin\SDL2.dll`, then select
   `No` when asked to `Keep this as a relative path?`. Click on `Ok`
 
 - from the menu `Build`, select `Build`. The executable `fern.exe`

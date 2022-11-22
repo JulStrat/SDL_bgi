@@ -84,10 +84,14 @@ int main (int argc, char *argv[])
   setwinoptions ("", -1, -1, SDL_WINDOW_FULLSCREEN);
   initwindow (0, 0); // fullscreen
   setbkcolor (BLACK);
+  setcolor (RED);
   cleardevice ();
   refresh ();
   xc = getmaxx () / 2;
   yc = getmaxy () / 2;
+  settextjustify (CENTER_TEXT, CENTER_TEXT);
+  outtextxy (xc, yc, "Press a key to start:");
+  getch ();
   n = 0;
   
   while (!stop) {
@@ -125,7 +129,7 @@ int main (int argc, char *argv[])
       refresh ();
       n = 0;
       
-      if (event())
+      if (WM_LBUTTONDOWN == mouseclick())
 	stop = YEAH;
       
     }
@@ -134,3 +138,5 @@ int main (int argc, char *argv[])
   closegraph ();
   
 }
+
+// ----- end of file kaleido.c

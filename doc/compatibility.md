@@ -15,7 +15,7 @@ complete `GRAPHICS.H` implementation.
 
 `SDL_bgi` is a superset of both, and as far as I can say it provides
 the most compatible `GRAPHICS.H` implementation available. It should
-be noted, however, that `SDL_bgi` is not a Turbo C or Borland C++
+be stressed, however, that `SDL_bgi` is not a Turbo C or Borland C++
 emulator! Besides, `SDL_bgi` is also designed to be portable and to
 take advantage of modern graphics hardware, thanks to the SDL2
 library.
@@ -35,10 +35,10 @@ example, programs written for the `IBM8514.BGI` driver needed
 modifications to compile and run on the `EGAVGA.BGI` driver.
 
 Full compatibility is only possible in a hardware emulator like
-DOSBox. If a program uses `CONIO.H`, `DOS.H`, `BIOS.H` and the like,
-chances are you won't be able to compile it. Please consider using
-DOSBox and one of the original Borland compilers that are available as
-freeware.
+[DOSBox](https://www.dosbox.com). If a program uses `CONIO.H`, `DOS.H`,
+`BIOS.H` and the like, chances are you won't be able to compile it.
+Please consider using DOSBox and one of the original Borland compilers
+that are available as freeware.
 
 That said, `SDL_bgi` is almost perfectly compatible with the original
 `GRAPHICS.H`. It has been tested on the original `BGIDEMO.C` included
@@ -103,6 +103,10 @@ setpalette (RED, COLOR (0xa0, 0x10, 0x10));
 // use the n-th entry in the ARGB palette
 setpalette (GREEN, RGBPALETTE (n));
 ````
+
+- console functions (e.g. `printf()`) do not send their output to the
+graphics window. If the program was started from a terminal,
+input/output will take place on the terminal.
 
 
 ## Compatibility with WinBGIm

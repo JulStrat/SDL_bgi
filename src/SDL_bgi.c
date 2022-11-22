@@ -7,13 +7,13 @@
 // By Guido Gonzato, PhD
 // Automatic refresh patch, CHR font support:
 // Marco Diego Aurélio Mesquita
-// Latest update: September 16, 2021
+// Latest update: May 28, 2022
 
 // ZLib License
 
 /*
 
-Copyright (c) 2014-2021 Guido Gonzato, PhD
+Copyright (c) 2014-2022 Guido Gonzato, PhD
 
 This software is provided 'as-is', without any express or implied
 warranty. In no event will the authors be held liable for any damages
@@ -51,19 +51,26 @@ freely, subject to the following restrictions:
 // stuff gets drawn here; these variables are available to the
 // programmer. All the rest is hidden.
 
-SDL_Window   *bgi_window;
-SDL_Renderer *bgi_renderer;
-SDL_Texture  *bgi_texture;
+SDL_Window
+  *bgi_window;
+SDL_Renderer
+  *bgi_renderer;
+SDL_Texture
+  *bgi_texture;
 
 // ARGB palette initial size; it can be resized using resizepalette().
 
-Uint32       PALETTE_SIZE = 4096;
+Uint32
+  PALETTE_SIZE = 4096;
 
 // static global variables. I am not afraid of global variables.
 
-static SDL_Window   *bgi_win[NUM_BGI_WIN];
-static SDL_Renderer *bgi_rnd[NUM_BGI_WIN];
-static SDL_Texture  *bgi_txt[NUM_BGI_WIN];
+static SDL_Window
+  *bgi_win[NUM_BGI_WIN];
+static SDL_Renderer
+  *bgi_rnd[NUM_BGI_WIN];
+static SDL_Texture
+  *bgi_txt[NUM_BGI_WIN];
 
 // multiple windows
 
@@ -84,8 +91,9 @@ static SDL_Surface
 // pixel data of active and visual pages
 
 static Uint32
-  *bgi_activepage[NUM_BGI_WIN], // active (= being drawn on) page;
+  *bgi_activepage[NUM_BGI_WIN]; // active (= being drawn on) page;
                                 // may be hidden
+static Uint32
   *bgi_visualpage[NUM_BGI_WIN]; // visualised page
 
 // This is how we draw stuff on the screen. Pixels pointed to by
@@ -103,7 +111,8 @@ static Uint32
 // this is the global palette, containing all colours:
 // size is BGI_COLORS + TMP_COLORS + PALETTE_SIZE
 
-static Uint32 *bgi_argb_palette;
+static Uint32
+  *bgi_argb_palette;
 
 // default 16-colour palette; values can't be changed.
 // RGB colour definitions are taken from https://www.colorhexa.com/
@@ -189,7 +198,7 @@ static int
   bgi_refresh_rate = 0,      // window refresh rate
   bgi_error_code =
   grNoInitGraph,             // graphics error code
-  bgi_last_key_pressed,      // last key pressed
+  bgi_last_key_pressed = 0,  // last key pressed
   bgi_internal_font_height,  // font height
   bgi_internal_offset,       // offset for outtextxy()
   bgi_internal_font_desc;
@@ -220,14 +229,19 @@ static float
 
 // mouse structure
 struct {
-  int x;       // coordinates of last mouse click
+  int x;        // coordinates of last mouse click
   int y;
-  Uint8 btn;   // button clicked
+  Uint8 btn;    // button clicked
+  int clicks;   // -1=release, 0=no click, 1 or 2 = single or double click
+  int wheel;    // 1=away from user, -1=towards the user
 } bgi_mouse;
 
-// mutex for update timer/thread
+// mutex for update timer/thread; not available in emscripten
+
+#ifndef __EMSCRIPTEN__
 static SDL_mutex
   *bgi_update_mutex = NULL;
+#endif
 
 // BGI window title
 static char
@@ -559,6 +573,8 @@ static void refresh_window   (void);
 // -----
 
 // Let's start!
+
+// -----
 
 // Error handling
 
@@ -984,11 +1000,13 @@ void arc (int x, int y, int stangle, int endangle, int radius)
   // Draws a circular arc centered at (x, y), with a radius
   // given by radius, traveling from stangle to endangle.
 
-  // Quick and dirty for now, Bresenham-based later (maybe)
+  // Quick and dirty for now; maybe a faster implementation later,
+  // http://www.realitypixels.com/turk/computergraphics/CircularArcSubdivision.pdf
 
   check_initgraph ();
 
-  int angle;
+  int
+    angle;
 
   if (0 == radius)
     return;
@@ -1023,8 +1041,7 @@ void bar (int left, int top, int right, int bottom)
   check_initgraph ();
 
   int
-    y,
-    tmp, tmpcolor, tmpthickness;
+    y, tmp, tmpcolor, tmpthickness;
 
   tmp = bgi_fg_color;
 
@@ -1061,7 +1078,8 @@ void bar3d (int left, int top, int right,
 
   check_initgraph ();
 
-  Uint32 tmp, tmpcolor;
+  Uint32
+    tmp, tmpcolor;
 
   swap_if_greater (&left, &right);
   swap_if_greater (&top, &bottom);
@@ -1151,7 +1169,8 @@ void cleardevice (void)
 
   check_initgraph ();
 
-  int x, y;
+  int
+    x, y;
 
   bgi_cp_x = bgi_cp_y = 0;
 
@@ -1172,7 +1191,8 @@ void clearviewport (void)
 
   check_initgraph ();
 
-  int x, y;
+  int
+    x, y;
 
   bgi_cp_x = bgi_cp_y = 0;
 
@@ -1192,6 +1212,12 @@ void closegraph (void)
 
   check_initgraph ();
 
+#ifdef __EMSCRIPTEN__
+  // for Emscripten output
+  cleardevice ();
+  refresh ();
+#endif
+
   // waits for update callback to finish
 
   bgi_refresh_needed = SDL_FALSE;
@@ -1210,7 +1236,9 @@ void closegraph (void)
   // for (int page = 0; page < bgi_np; page++)
     // SDL_FreeSurface (bgi_vpage[page]);
 
+#ifndef __EMSCRIPTEN__
   SDL_UnlockMutex (bgi_update_mutex);
+#endif
 
   // Destroy our loaded fonts
   for (int i = 0; i < MAX_FONTS; i++)
@@ -1219,9 +1247,13 @@ void closegraph (void)
   // Only calls SDL_Quit if not running fullscreen
   if (SDL_FULLSCREEN != bgi_gm)
     SDL_Quit ();
-  
+
   // the program might continue in text mode
   bgi_num_windows = 0;
+
+#ifdef __EMSCRIPTEN__
+  emscripten_run_script ("window.close()");
+#endif
 
 } // closegraph ()
 
@@ -1239,13 +1271,12 @@ void delay (int msec)
 
   do {
 
-    if (event())
+    if (event ())
       ; // event recorded
 
   } while (SDL_GetTicks () < stop);
 
-} // edelay ()
-
+} // delay ()
 
 // -----
 
@@ -1267,7 +1298,8 @@ void drawpoly (int numpoints, int *polypoints)
 
   check_initgraph ();
 
-  int n;
+  int
+    n;
 
   for (n = 0; n < numpoints - 1; n++)
     line_fast (polypoints[2*n], polypoints[2*n + 1],
@@ -1284,7 +1316,8 @@ void drawpoly (int numpoints, int *polypoints)
 
 static void swap_if_greater (int *x1, int *x2)
 {
-  int tmp;
+  int
+    tmp;
 
   if (*x1 > *x2) {
     tmp = *x1;
@@ -1307,7 +1340,8 @@ void ellipse (int x, int y, int stangle, int endangle,
 
   check_initgraph ();
 
-  int angle;
+  int
+    angle;
 
   if (0 == xradius && 0 == yradius)
     return;
@@ -1649,10 +1683,10 @@ static void ff_putpixel (int x, int y)
 
   Uint8
     ptn;
-  
+
   x += vp.left;
   y += vp.top;
-  
+
   ptn = mirror_bits (fill_patterns[bgi_fill_style.pattern][y % 8]);
 
   // if the corresponding bit in the pattern is 1
@@ -1674,19 +1708,19 @@ void _floodfill (int x, int y, int border)
     x1,
     sl_x1, sl_x2, // scanline X coordinates
     oldcol = getpixel (x, y);
-  
+
   // draw current scanline from start position to the right
   x1 = x;
   while (x1 < getmaxx () && getpixel (x1, y) != border)
     ff_putpixel (x1++, y);
   sl_x2 = x1 - 1; // scanline right X coordinate
-  
+
   // draw current scanline from start position to the left
   x1 = x - 1;
   while (x1 >= 0 && getpixel (x1, y) != border)
     ff_putpixel (x1--, y);
   sl_x1 = x1 + 1; // scanline left X coordinate
-  
+
   // test for new scanlines above
   x1 = x;
   while (x1 < getmaxx () && x1 <= sl_x2) {
@@ -1700,7 +1734,7 @@ void _floodfill (int x, int y, int border)
       _floodfill (x1, y - 1, border);
     x1--;
   }
-  
+
   // test for new scanlines below
   x1 = x;
   while (x1 < getmaxx () && x1 <= sl_x2) {
@@ -1708,14 +1742,14 @@ void _floodfill (int x, int y, int border)
       _floodfill (x1, y + 1, border);
     x1++;
   }
-  
+
   x1 = x - 1;
   while (x1 >= 0 && x1 >= sl_x1) {
     if (y < getmaxy () - 1 && getpixel (x1, y + 1) == oldcol)
       _floodfill (x1, y + 1, border);
     x1--;
   }
-  
+
 } // _floodfill ()
 
 // -----
@@ -1749,30 +1783,30 @@ void floodfill (int x, int y, int border)
     _floodfill (x, y, border);
     return;
   }
-  
+
   else { // fill patterns
-    
+
     if (bgi_bg_color == oldcol) {
-      
+
       // solid fill first, then pattern fill on top of it
       tmp_pattern = bgi_fill_style.pattern;
       bgi_fill_style.pattern = SOLID_FILL;
       tmp_color = bgi_fill_style.color;
-      
+
       // find a suitable temporary fill colour; it must be
       // different from the border, the background,
       // and the former fill colour
       for (int i = BLACK; i < MAXCOLORS + 1; i++) {
 	bgi_fill_style.color = i;
-	if (oldcol != bgi_fill_style.color && 
+	if (oldcol != bgi_fill_style.color &&
 	    border != bgi_fill_style.color &&
 	    tmp_color != bgi_fill_style.color)
 	  break;
       }
-      
+
       // solid fill...
       _floodfill (x, y, border);
-      
+
       // ...then pattern fill
       bgi_fill_style.pattern = tmp_pattern;
       bgi_fill_style.color = tmp_color;
@@ -1844,9 +1878,9 @@ int getbkcolor (void)
 
 // -----
 
-// this function should be simply named "getch", but this name
-// causes a bug in MSYS2.
-// "getch" is defined as a macro in SDL_bgi.h
+// This function should be simply named "getch()", but this name
+// causes a bug in MSYS2 (already defined in curses.h and elsewere)
+// "getch" is therefore defined as a macro in SDL_bgi.h
 
 // **Note**: this function belongs to "conio.h"; it is here
 // for convenience and WinBGIm compatibility.
@@ -1859,20 +1893,25 @@ int bgi_getch (void)
   int
     key, type;
 
+  SDL_Keymod
+    keymod;
+
   refresh ();
 
   if (bgi_window_is_hidden)
     return (getchar ());
 
-  // any pending keypresses by kbhit()?
+  // any pending keypresses by kbhit ()?
   if (SDL_TRUE == bgi_key_pressed) {
     bgi_key_pressed = SDL_FALSE;
     return bgi_last_key_pressed;
   }
 
   do {
+
     key = getevent ();
-    type = eventtype ();
+    type = bgi_last_event;
+    keymod = SDL_GetModState ();
 
     if (QUIT == type)
       return QUIT;
@@ -1888,8 +1927,14 @@ int bgi_getch (void)
         key != KEY_LGUI &&
         key != KEY_RGUI &&
         key != KEY_MENU &&
-        key != KEY_ALT_GR) // can't catch AltGr!
+        key != KEY_ALT_GR) { // can't catch AltGr!
+      if (KMOD_LSHIFT == keymod ||
+	  KMOD_RSHIFT == keymod ||
+	  KMOD_CAPS   == keymod)
+	key -= ('a' - 'A');
       return (int) key;
+    }
+
   } while (1);
 
   // we should never get here...
@@ -1983,8 +2028,10 @@ void getimage (int left, int top, int right, int bottom, void *bitmap)
 
   check_initgraph ();
 
-  Uint32 bitmap_w, bitmap_h, *tmp;
-  int i = 2, x, y;
+  Uint32
+    bitmap_w, bitmap_h, *tmp;
+  int
+    i = 2, x, y;
 
   // bitmap has already been malloc()'ed by the user.
   tmp = bitmap;
@@ -2038,12 +2085,13 @@ int getmaxheight (void)
 {
   // Returns the maximum height available for a new window.
 
-  int x, y;
-  
+  int
+    x, y;
+
   getscreensize (&x, &y);
-  
+
   return (y);
-  
+
 } // getmaxheight ()
 
 // -----
@@ -2062,12 +2110,13 @@ int getmaxwidth (void)
 {
   // Returns the maximum width available for a new window.
 
-  int x, y;
-  
+  int
+    x, y;
+
   getscreensize (&x, &y);
-  
+
   return (x);
-  
+
 } // getmaxwidth ()
 
 // -----
@@ -2189,7 +2238,7 @@ void getpalette (struct palettetype *palette)
 
   for (int i = BLACK; i < MAXCOLORS; i++)
     palette->colors[i] = bgi_argb_palette[i];
-  
+
   palette->size = MAXCOLORS + 1;
 
 } // getpalette ()
@@ -2237,8 +2286,10 @@ unsigned int getpixel (int x, int y)
 
   check_initgraph ();
 
-  int col;
-  Uint32 tmp;
+  int
+    col;
+  Uint32
+    tmp;
 
   x += vp.left;
   y += vp.top;
@@ -2340,27 +2391,28 @@ char *grapherrormsg (int errorcode)
   // CHECK
   // check_initgraph ();
 
-  char *error_msg[] = {
-    "No error",
-    "(BGI) graphics not installed (use initgraph)",
-    "Graphics hardware not detected",
-    "Device driver file not found",
-    "Invalid device driver file",
-    "Not enough memory to load driver",
-    "Out of memory in scan fill",
-    "Out of memory in flood fill",
-    "Font file not found",
-    "Not enough memory to load font",
-    "Invalid graphics mode for selected driver",
-    "Graphics error",
-    "Graphics I/O error",
-    "Invalid font file",
-    "Invalid font number",
-    "Invalid device number",
-    "", // -16, unspecified
-    "", // -17, unspecified
-    "Invalid version number"
-  };
+  char
+    *error_msg[] = {
+      "No error",
+      "(BGI) graphics not installed (use initgraph)",
+      "Graphics hardware not detected",
+      "Device driver file not found",
+      "Invalid device driver file",
+      "Not enough memory to load driver",
+      "Out of memory in scan fill",
+      "Out of memory in flood fill",
+      "Font file not found",
+      "Not enough memory to load font",
+      "Invalid graphics mode for selected driver",
+      "Graphics error",
+      "Graphics I/O error",
+      "Invalid font file",
+      "Invalid font number",
+      "Invalid device number",
+      "", // -16, unspecified
+      "", // -17, unspecified
+      "Invalid version number"
+    };
 
   return error_msg [-bgi_error_code];
 
@@ -2416,7 +2468,7 @@ void graphdefaults (void)
     // use the new palette
     for (int i = BLACK; i < WHITE + 1; i++)
       bgi_pal.colors[i] = bgi_std_palette[i];
-  
+
   // the rgb palette is not initialised
 
 } // graphdefaults ()
@@ -2478,6 +2530,22 @@ void initgraph (int *graphdriver, int *graphmode, char *pathtodriver)
 	  *graphmode = SDL_VGA;
       }
   }
+
+#ifdef __EMSCRIPTEN__
+  if (NULL != graphdriver && DETECT == *graphdriver) {
+    // graphics mode can be forced to VGA for compatibility
+    char res[4];
+    FILE *file = fopen ("SDL_BGI_RES", "r");
+    if (NULL != file) {
+      fgets (res, 4, file);
+      fclose (file);
+      if (0 == strcmp ("VGA", res))
+	bgi_gm = SDL_VGA;
+      if (NULL != graphmode)
+	*graphmode = SDL_VGA;
+    }
+  }
+#endif
 
   switch (bgi_gm) {
 
@@ -2547,12 +2615,23 @@ void initpalette (void)
 
   check_initgraph ();
 
+#ifndef __EMSCRIPTEN__
   char
     *res = getenv ("SDL_BGI_PALETTE");
 
   if (NULL != res &&
       (0 == strcmp ("BGI", res)) )
     bgi_use_newpalette = SDL_FALSE;
+#else
+  char res[4];
+  FILE *file = fopen ("SDL_BGI_PALETTE", "r");
+  if (NULL != file) {
+    fgets (res, 4, file);
+    fclose (file);
+    if (0 == strcmp ("BGI", res))
+      bgi_use_newpalette = SDL_FALSE;
+  }
+#endif
 
   bgi_argb_palette = calloc (BGI_COLORS + TMP_COLORS + PALETTE_SIZE,
 			     sizeof (Uint32));
@@ -2562,7 +2641,7 @@ void initpalette (void)
     showerrorbox (str);
     exit (1);
   }
-  
+
   if (SDL_FALSE == bgi_use_newpalette) // use the old (ugly) palette
     for (int i = BLACK; i < WHITE + 1; i++)
       bgi_argb_palette[i] = bgi_orig_palette[i];
@@ -2574,27 +2653,33 @@ void initpalette (void)
 
 // -----
 
-// this function should be simply named "kbhit", but this name
-// causes a bug in MSYS2.
-// "kbhit" is defined as a macro in SDL_bgi.h
+// 1. This function should be simply named "kbhit()", but this name
+// clashes with a function in MSYS2/Mingw64. "kbhit" is therefore
+// defined as a macro in SDL_bgi.h
 
-// **Note**: this function belongs to "conio.h"; it is here
-// for convenience and WinBGIm compatibility.
+// 2. **Note**: this function belongs to "conio.h"; it is here for
+// convenience and WinBGIm compatibility.
 
 int bgi_kbhit (void)
 {
   // Returns 1 when a key is pressed, or QUIT
   // if the user asked to close the window
 
-  SDL_Event event;
-  SDL_Keycode key;
+  SDL_Event
+    event;
+  SDL_Keycode
+    key;
+  SDL_Keymod
+    keymod;
 
   update ();
 
   if (SDL_PollEvent (&event)) {
-    
+
     if (SDL_KEYDOWN == event.type) {
       key = event.key.keysym.sym;
+      bgi_last_event = event.type;
+      keymod = SDL_GetModState ();
       if (key != SDLK_LCTRL &&
           key != SDLK_RCTRL &&
           key != SDLK_LSHIFT &&
@@ -2610,6 +2695,10 @@ int bgi_kbhit (void)
           key != SDLK_APPLICATION) {
 	bgi_key_pressed = SDL_TRUE;
 	bgi_last_key_pressed = (int) key;
+	if (KMOD_LSHIFT == keymod ||
+	    KMOD_RSHIFT == keymod ||
+	    KMOD_CAPS   == keymod)
+	  bgi_last_key_pressed -= ('a' - 'A');
 	return SDL_TRUE;
       }
       else
@@ -2622,12 +2711,21 @@ int bgi_kbhit (void)
       }
     else
       SDL_PushEvent (&event); // don't disrupt the mouse
-  
+
   } // if (SDL_PollEvent (&event))
 
   return SDL_FALSE;
 
 } // bgi_kbhit ()
+
+// -----
+
+int lastkey (void)
+{
+  // Returns the last key pressed
+
+  return bgi_last_key_pressed;
+}
 
 // -----
 
@@ -2892,7 +2990,8 @@ void line (int x1, int y1, int x2, int y2)
 
   check_initgraph ();
 
-  int oct;
+  int
+    oct;
 
   check_initgraph ();
 
@@ -3104,7 +3203,8 @@ static void _bar (int left, int top, int right, int bottom)
 {
   // Used by drawchar_bitmap()
 
-  int tmp, y;
+  int
+    tmp, y;
 
   // like bar (), but uses bgi_fg_color
 
@@ -3182,7 +3282,7 @@ static void drawchar_internal (int ch)
     num;
 
   // TODO: char -> short int?
-  
+
   const char
     *glyph;
 
@@ -3341,7 +3441,7 @@ void outtextxy (int x, int y, char *textstring)
     return;
 
   th = textheight (textstring);
-  
+
   if (HORIZ_DIR == bgi_txt_style.direction) {
 
     if (LEFT_TEXT == bgi_txt_style.horiz)
@@ -3407,7 +3507,7 @@ void outtextxy (int x, int y, char *textstring)
   bgi_line_style.linestyle = tmp_stl;
   bgi_cp_x = tmp_x;
   bgi_cp_y = tmp_y;
-  
+
   update ();
 
 } // outtextxy ()
@@ -3423,7 +3523,8 @@ void pieslice (int x, int y, int stangle, int endangle, int radius)
 
   check_initgraph ();
 
-  int angle;
+  int
+    angle;
 
   if (0 == radius || stangle == endangle)
     return;
@@ -3450,7 +3551,7 @@ void pieslice (int x, int y, int stangle, int endangle, int radius)
   line_fast (x, y, bgi_last_arc.xend, bgi_last_arc.yend);
 
   angle = (stangle + endangle) / 2;
-  
+
   // !!! FIXME: what if we're trying to fill an already filled pieslice?
   floodfill (x + (radius * cos (angle * PI_CONV)) / 2,
              y - (radius * sin (angle * PI_CONV)) / 2,
@@ -3615,8 +3716,9 @@ static void putpixel_not (int x, int y, Uint32 pixel)
 void putpixel (int x, int y, int color)
 {
   // Plots a point at (x,y) in the color defined by 'color'.
-  
-  int tmpcolor;
+
+  int
+    tmpcolor;
 
   check_initgraph ();
 
@@ -3726,7 +3828,8 @@ void sector (int x, int y, int stangle, int endangle,
 
   check_initgraph ();
 
-  int angle, tmpcolor;
+  int
+    angle, tmpcolor;
 
   if (0 == xradius && 0 == yradius)
     return;
@@ -3788,7 +3891,7 @@ void setallpalette (struct palettetype *palette)
   // Sets the current palette to the values given in palette.
 
   check_initgraph ();
-  
+
   if (NULL == palette) {
     bgi_error_code = grError;
     return;
@@ -3820,7 +3923,7 @@ void setbkcolor (int col)
 
   if (col < -1)
     col += 32768;
-  
+
   // COLOR () or COLOR32 () or RGBPALETTE () set ARGB_BG_COL
   if (-1 == col) {
     bgi_bg_color = ARGB_BG_COL;
@@ -3832,7 +3935,7 @@ void setbkcolor (int col)
     bgi_argb_mode = SDL_FALSE;
     bgi_bg_color = col;
   }
-  
+
   // this was undocumented!
   clearviewport ();
 
@@ -3848,7 +3951,7 @@ void _setcolor (int col)
 
   if (col < -1)
     col += 32768;
-  
+
   // COLOR () or COLOR32 () or RGBPALETTE () set ARGB_FG_COL
   if (-1 == col) {
     bgi_fg_color = ARGB_FG_COL;
@@ -3875,7 +3978,7 @@ void setcolor (int col)
 
   if (col < -1)
     col += 32768;
-  
+
   // COLOR () or COLOR32 () or RGBPALETTE () set ARGB_FG_COL
   if (-1 == col) {
     bgi_fg_color = ARGB_FG_COL;
@@ -3899,7 +4002,7 @@ void setfillpattern (char *upattern, int color)
   // Sets a user-defined fill pattern.
 
   check_initgraph ();
-  
+
   if (color < -1)
     color += 32768;
 
@@ -3935,7 +4038,7 @@ void setfillstyle (int pattern, int color)
     bgi_error_code = grError;
     return;
   }
-  
+
   // if (color < -1)
     // color += 32768;
 
@@ -3963,7 +4066,7 @@ void setgraphmode (int mode)
   // Shows the window that was hidden by restorecrtmode ().
 
   check_initgraph ();
-  
+
   SDL_ShowWindow (bgi_win[bgi_current_window]);
   bgi_window_is_hidden = SDL_FALSE;
   cleardevice ();
@@ -3994,18 +4097,18 @@ void setpalette (int colornum, int color)
 
   int
     x, y;
-  
+
   Uint32
     oldcol, newcol;
-  
+
   check_initgraph ();
 
   // handle negative colours?
   if (colornum == color || color < -1 || colornum < -1)
     return;
-  
+
   oldcol = bgi_argb_palette[colornum];
-  
+
   if (-1 == color) // user called COLOR()
     bgi_argb_palette[colornum] = bgi_argb_palette[ARGB_TMP_COL];
   else {
@@ -4023,7 +4126,7 @@ void setpalette (int colornum, int color)
     for (y = 0; y < getmaxy (); y++)
       if (oldcol == PIXEL (x, y))
 	PIXEL (x, y) = newcol;
-  
+
 } // setpalette ()
 
 // -----
@@ -4164,7 +4267,7 @@ void settextstyle (int font, int direction, int charsize)
   // undocumented feature; please see installuserfont()
   if (LAST_SPEC_FONT == font && NULL == chr_font)
     bgi_font = DEFAULT_FONT;
-  
+
   if (font > LAST_SPEC_FONT) { // use a loaded .CHR font
     chr_font = chr_fonts[font];
     if (NULL == chr_font) {
@@ -4216,12 +4319,12 @@ void setusercharsize (int multx, int divx, int multy, int divy)
   bgi_user_size_y = (float)multy / (float)divy;
 
   // According to the docs:
-  // "When charsize equals 0, the output functions outtext and 
+  // "When charsize equals 0, the output functions outtext and
   // outtextxy magnify the stroked font text using either the default
   // character magnification factor (4) or the user-defined character
   // size given by setusercharsize."
   // But Turbo C++ 1.01 always uses magnification.
-  // 
+  //
   // if (USER_CHAR_SIZE == bgi_txt_style.charsize) {
     bgi_font_mag_x = bgi_user_size_x;
     bgi_font_mag_y = bgi_user_size_y;
@@ -4293,7 +4396,7 @@ int textheight (char *textstring)
     height;
 
   // FIXME: take care of loaded fonts.
-  
+
   if (DEFAULT_FONT == bgi_font)
     height = bgi_font_mag_y * bgi_bitmap_font_height;
   else
@@ -4311,8 +4414,10 @@ int textwidth (char *textstring)
 
   check_initgraph ();
 
-  int ch;
-  float width = 0.0;
+  int
+    ch;
+  float
+    width = 0.0;
 
   if (DEFAULT_FONT == bgi_font) // 8x8 bitmap font
     width = (strlen (textstring) *
@@ -4441,7 +4546,7 @@ int RGBPALETTE (int color)
   // to set an ARGB color.
 
   bgi_use_tmp_color = SDL_TRUE;
-  bgi_argb_palette[ARGB_TMP_COL] = 
+  bgi_argb_palette[ARGB_TMP_COL] =
     bgi_argb_palette[BGI_COLORS + TMP_COLORS + color];
   return -1;
 
@@ -4494,7 +4599,7 @@ void closewindow (int id)
   // Closes a window.
 
   check_initgraph ();
-  
+
   if (SDL_FALSE == bgi_active_windows[id]) {
     char str[40];
     sprintf (str, "Window %d does not exist.\n", id);
@@ -4513,6 +4618,20 @@ void closewindow (int id)
 
 // -----
 
+int doubleclick (void)
+{
+
+  if (2 == bgi_mouse.clicks) {
+    bgi_mouse.clicks = 0;
+    return SDL_TRUE;
+  }
+  else
+    return SDL_FALSE;
+
+} // doubleclick ()
+
+// -----
+
 int edelay (int msec)
 {
   // Waits for 'msec' milliseconds and returns SDL_FALSE if no
@@ -4528,7 +4647,7 @@ int edelay (int msec)
 
   do {
 
-    if (event())
+    if (event ())
       ev = SDL_TRUE;
 
   } while (SDL_GetTicks () < stop);
@@ -4541,21 +4660,66 @@ int edelay (int msec)
 
 int event (void)
 {
-  // Returns SDL_TRUE if an event has occurred.
+  // Returns SDL_TRUE if an event has occurred, SDL_FALSE otherwise.
 
-  SDL_Event event;
+  SDL_Event
+    event;
+
   update ();
-
+  
   if (SDL_PollEvent (&event)) {
-    if ( (SDL_KEYDOWN == event.type)         ||
-         (SDL_MOUSEBUTTONDOWN == event.type) ||
-         (SDL_MOUSEWHEEL == event.type)      ||
-         (SDL_QUIT == event.type) ) {
-      SDL_PushEvent (&event); // don't disrupt the event
-      bgi_last_event = event.type;
+
+    bgi_last_event = event.type;
+
+    switch (bgi_last_event) {
+
+      // no SDL_WINDOWEVENT here
+
+      case SDL_KEYDOWN:
+      bgi_last_key_pressed = (int) event.key.keysym.sym;
+      SDL_PushEvent (&event); // don't disrupt the keyboard
+      bgi_mouse.x = bgi_mouse.y = -1;
       return SDL_TRUE;
-    }
-  }
+      break;
+
+      case SDL_MOUSEMOTION:
+      bgi_mouse.x = event.motion.x;
+      bgi_mouse.y = event.motion.y;
+      bgi_last_key_pressed = -1;
+      return SDL_TRUE;
+
+      case SDL_MOUSEBUTTONDOWN:
+      bgi_mouse.btn = event.button.button;
+      bgi_mouse.clicks = event.button.clicks;
+      SDL_GetMouseState (&bgi_mouse.x, &bgi_mouse.y);
+      return SDL_TRUE;
+      break;
+
+      case SDL_MOUSEBUTTONUP:
+      bgi_mouse.btn = event.button.button;
+      bgi_mouse.clicks = 0;
+      SDL_GetMouseState (&bgi_mouse.x, &bgi_mouse.y);
+      return SDL_TRUE;
+      break;
+
+      case SDL_MOUSEWHEEL:
+      bgi_mouse.wheel = (event.wheel.y > 0) ?
+	WM_WHEELUP : WM_WHEELDOWN;
+      SDL_GetMouseState (&bgi_mouse.x, &bgi_mouse.y);
+      return SDL_TRUE;
+      break;
+      
+      case SDL_QUIT:
+      return SDL_TRUE;
+      break;
+      
+      default:
+        ;
+
+    } // switch
+
+  } // if
+
   return SDL_FALSE;
 
 } // event ()
@@ -4564,7 +4728,9 @@ int event (void)
 
 int eventtype (void)
 {
-  // Returns the type of event occurred
+  // Returns the type of the last event:
+  // SDL_KEYDOWN, SDL_MOUSEMOTION, SDL_MOUSEBUTTONDOWN,
+  // SDL_MOUSEBUTTONUP, SDL_MOUSEWHEEL, SDL_QUIT
 
   return (bgi_last_event);
 
@@ -4585,6 +4751,26 @@ void getbuffer (Uint32 *buffer)
 
 // -----
 
+int getclick ()
+{
+  // Waits for a button click.
+
+  int
+    click;
+
+  while (1) {
+
+    click = mouseclick ();
+    if (WM_LBUTTONDOWN == click ||
+	WM_MBUTTONDOWN == click ||
+	WM_RBUTTONDOWN == click)
+    return bgi_mouse.btn;
+  }
+
+} // getclick ()
+
+// -----
+
 int getcurrentwindow (void)
 {
   // Returns the ID of current window
@@ -4597,82 +4783,119 @@ int getcurrentwindow (void)
 
 int getevent (void)
 {
-  // Waits for a keypress or mouse click, and returns the code of
-  // the mouse button or key that was pressed.
+  // Waits for a keypress or mouse click, and returns
+  // the code of the mouse event or key that was pressed.
 
-  SDL_Event event;
+  SDL_Event
+    event;
 
-  // wait for an event
-  while (1) {
+  while (SDL_WaitEvent (&event)) {
 
-    while (SDL_WaitEvent (&event))
+    bgi_last_event = event.type;
 
-      switch (event.type) {
+    switch (bgi_last_event) {
 
-      case SDL_WINDOWEVENT:
+    case SDL_WINDOWEVENT:
 
-        switch (event.window.event) {
+      switch (event.window.event) {
 
-        case SDL_WINDOWEVENT_SHOWN:
-        case SDL_WINDOWEVENT_EXPOSED:
-          refresh_window ();
-          break;
+      case SDL_WINDOWEVENT_SHOWN:
+      case SDL_WINDOWEVENT_EXPOSED:
+	refresh_window ();
+	break;
 
-        case SDL_WINDOWEVENT_CLOSE:
-          bgi_last_event = QUIT;
-          return QUIT;
-          break;
-
-        default:
-          ;
-
-        } // switch (event.window.event)
-
-        break;
-
-      case SDL_KEYDOWN:
-        bgi_last_event = SDL_KEYDOWN;
-        bgi_mouse.x = bgi_mouse.y = -1;
-        return event.key.keysym.sym;
-        break;
-
-      case SDL_MOUSEBUTTONDOWN:
-        bgi_last_event = SDL_MOUSEBUTTONDOWN;
-        bgi_mouse.x = event.button.x;
-        bgi_mouse.y = event.button.y;
-        return event.button.button;
-        break;
-
-      case SDL_MOUSEWHEEL:
-        bgi_last_event = SDL_MOUSEWHEEL;
-        SDL_GetMouseState (&bgi_mouse.x, &bgi_mouse.y);
-        if (1 == event.wheel.y) // up
-          return (WM_WHEELUP);
-        else
-          return (WM_WHEELDOWN);
-        break;
+      case SDL_WINDOWEVENT_CLOSE:
+	bgi_last_event = QUIT;
+	return SDL_QUIT;
+	break;
 
       default:
-        ;
+	;
 
-      } // switch (event.type)
+      } // switch (event.window.event)
+      break;
 
-  } // while (1)
+#if 0
+    case SDL_MOUSEMOTION:
+      SDL_GetMouseState (&bgi_mouse.x, &bgi_mouse.y);
+      return SDL_MOUSEMOTION;
+      break;
+#endif
+
+    case SDL_KEYDOWN:
+      bgi_last_key_pressed = (int) event.key.keysym.sym;
+      bgi_mouse.x = bgi_mouse.y = -1;
+      // logically, it should be SDL_KEYDOWN
+      return bgi_last_key_pressed;
+      break;
+
+    case SDL_MOUSEBUTTONDOWN:
+      bgi_mouse.btn = event.button.button;
+      bgi_mouse.clicks = event.button.clicks;
+      SDL_GetMouseState (&bgi_mouse.x, &bgi_mouse.y);
+      // logically, it should be SDL_MOUSEBUTTONDOWN
+      return bgi_mouse.btn;
+      break;
+
+    case SDL_MOUSEWHEEL:
+      SDL_GetMouseState (&bgi_mouse.x, &bgi_mouse.y);
+      return (event.wheel.y > 0) ?
+	WM_WHEELUP : WM_WHEELDOWN;
+      break;
+
+    default:
+      ;
+
+    } // switch (bgi_last_event)
+
+  } // while
+
+  return 0;
 
 } // getevent ()
 
 // -----
 
+static void _getclick (int btn)
+{
+  // Waits for the specified 'btn' click.
+
+  // temporary slow mode - I don't know why
+  // Emscripten wants this in order to work
+
+  int
+    tmp = bgi_fast_mode;
+  bgi_fast_mode = SDL_FALSE;
+  
+  SDL_PumpEvents ();
+
+  // click
+  while (1) {
+    event ();
+    if (SDL_MOUSEBUTTONDOWN == bgi_last_event &&
+        bgi_mouse.btn == btn)
+      break;
+  }
+  
+  // release
+  while (1) {
+    event ();
+    if (SDL_MOUSEBUTTONUP == bgi_last_event)
+      break;
+  }
+  
+  bgi_fast_mode = tmp;
+  
+} // _getclick ()
+
+// -----
+
 void getleftclick (void)
 {
-  // Waits for a left button click + release.
 
-  while (!ismouseclick (WM_LBUTTONDOWN))
-    ;
-  while (ismouseclick (WM_LBUTTONDOWN))
-    ;
-
-} // getleftclickk ()
+  _getclick (WM_LBUTTONDOWN);
+  
+} // getleftclick ()
 
 // -----
 
@@ -4693,19 +4916,16 @@ void getlinebuffer (int y, Uint32 *linebuffer)
 void getmiddleclick (void)
 {
   // Waits for a middle button click + release.
-
-  while (!ismouseclick (WM_MBUTTONDOWN))
-    ;
-  while (ismouseclick (WM_MBUTTONDOWN))
-    ;
-
-} // getmiddleclick ()
+  
+  _getclick (WM_MBUTTONDOWN);
+  
+} // getleftclick ()
 
 // -----
 
 void getmouseclick (int kind, int *x, int *y)
 {
-  // Sets the x,y coordinates of the last 'kind' button click
+  // Sets the x, y coordinates of the last 'kind' button click
   // expected by ismouseclick().
 
   if (kind == bgi_mouse.btn) {
@@ -4725,14 +4945,14 @@ void getrgbpalette (struct rgbpalettetype *palette, int size)
   // information about the current RGB palette's size and colors.
 
   check_initgraph ();
-  
+
   if (NULL == palette)
     return;
-  
+
   palette->size = size;
 
   for (int col = 0; col < size; col++)
-    palette->colors[col] = 
+    palette->colors[col] =
     bgi_argb_palette[BGI_COLORS + TMP_COLORS + col];
 
 } // getrgbpalette ()
@@ -4742,13 +4962,10 @@ void getrgbpalette (struct rgbpalettetype *palette, int size)
 void getrightclick (void)
 {
   // Waits for a right button click + release.
-
-  while (!ismouseclick (WM_RBUTTONDOWN))
-    ;
-  while (ismouseclick (WM_RBUTTONDOWN))
-    ;
-
-} // getrightclick ()
+  
+  _getclick (WM_RBUTTONDOWN);
+  
+} // getleftclick ()
 
 // -----
 
@@ -4764,7 +4981,7 @@ void getscreensize (int *x, int *y)
 
   SDL_DisplayMode mode =
   { SDL_PIXELFORMAT_UNKNOWN, 0, 0, 0, 0 };
-  
+
   if (SDL_GetDisplayMode (0, 0, &mode) != 0) {
     SDL_Log ("SDL_GetDisplayMode() failed: %s", SDL_GetError ());
     showerrorbox ("SDL_GetDisplayMode() failed");
@@ -4792,10 +5009,17 @@ void initwindow (int width, int height)
 
   char
     str[100];
-  
+
   // let's be proactive
   bgi_error_code = grOk;
 
+  // fix wrong values
+  if (width < 0)
+    width = 0;
+  if (height < 0)
+    height = 0;
+
+#ifndef __EMSCRIPTEN__
   // the mutex is used by update()
   if (!bgi_update_mutex)
     bgi_update_mutex = SDL_CreateMutex ();
@@ -4810,6 +5034,7 @@ void initwindow (int width, int height)
     SDL_Log ("SDL_LockMutex() failed: %s", SDL_GetError ());
     showerrorbox ("SDL_LockMutex() failed");
   }
+#endif
 
   SDL_DisplayMode mode =
   { SDL_PIXELFORMAT_UNKNOWN, 0, 0, 0, 0 };
@@ -4859,17 +5084,14 @@ void initwindow (int width, int height)
     return;
   }
 
-  // check if a fullscreen window is already open
+  // check if a fullscreen window has been created
   if (SDL_TRUE == fullscreen) {
-    sprintf (str, "Fullscreen window already open.\n");
+    sprintf (str, "Fullscreen window already exists.\n");
     fprintf (stderr, "%s", str);
     showerrorbox (str);
     return;
   }
 
-  // TODO: what if width or height exceed the screen 
-  // physical dimensions?
-  
   // take note of window size
   bgi_maxx = width - 1;
   bgi_maxy = height - 1;
@@ -4880,6 +5102,7 @@ void initwindow (int width, int height)
       bgi_maxy = mode.h - 1;
       bgi_window_flags = bgi_window_flags | SDL_WINDOW_FULLSCREEN_DESKTOP;
       fullscreen = SDL_TRUE;
+      bgi_gm = SDL_FULLSCREEN;
     }
     else {
       bgi_maxx = width - 1;
@@ -4968,7 +5191,7 @@ void initwindow (int width, int height)
 
   graphdefaults ();
 
-  // check the environment variable 'SDL_BGI_RATE'
+  // check for the environment variable 'SDL_BGI_RATE'
   // and act accordingly
 
   char *speed = getenv ("SDL_BGI_RATE");
@@ -4976,7 +5199,6 @@ void initwindow (int width, int height)
   if (NULL == speed) // variable does not exist
     speed = "compatible";
   else {
-
     if (0 == strcmp ("auto", speed))
       sdlbgiauto ();
 
@@ -4988,78 +5210,80 @@ void initwindow (int width, int height)
   // any other value of SDL_BGI_RATE triggers
   // "compatible" mode by default
 
+#ifndef __EMSCRIPTEN__
   SDL_UnlockMutex (bgi_update_mutex);
+#endif
 
   // fix fonts magnification
 
-  short int default_h[] = 
+  short int default_h[] =
   {8, 8, 16, 24, 32, 40, 40, 48, 56, 64, 72, 80};
-  short int trip_h[] = 
+  short int trip_h[] =
   {31, 18, 20, 23, 31, 41, 51, 62, 77, 93, 124};
-  short int litt_h[] = 
+  short int litt_h[] =
   {9, 5, 6, 6, 9, 12, 15, 18, 22, 27, 36};
-  short int sans_h[] = 
+  short int sans_h[] =
   {32, 19, 21, 24, 32, 42, 53, 64, 80, 96, 128};
-  short int goth_h[] = 
+  short int goth_h[] =
   {32, 19, 21, 24, 32, 42, 53, 64, 80, 96, 128};
-  short int scri_h[] = 
+  short int scri_h[] =
   {37, 22, 24, 27, 37, 49, 61, 74, 92, 111, 148};
-  short int simp_h[] = 
+  short int simp_h[] =
   {35, 21, 23, 26, 35, 46, 58, 70, 87, 105, 140};
-  short int tscr_h[] = 
+  short int tscr_h[] =
   {31, 18, 20, 23, 31, 41, 51, 62, 77, 93, 124};
-  short int lcom_h[] = 
+  short int lcom_h[] =
   {35, 21, 23, 26, 35, 46, 58, 70, 87, 105, 140};
-  short int euro_h[] = 
+  short int euro_h[] =
   {55, 33, 36, 41, 55, 73, 91, 110, 137, 165, 220};
-  short int bold_h[] = 
+  short int bold_h[] =
   {60, 36, 40, 45, 60, 80, 100, 120, 150, 180, 240};
-  
+
   // set font magnification
   for (int i = 0; i < FONT_SIZES; i++) {
-    
-    bgi_font_magnification[DEFAULT_FONT][i] = 
+
+    bgi_font_magnification[DEFAULT_FONT][i] =
     default_h[i] / 8; // bitmap font height
-    
-    bgi_font_magnification[TRIPLEX_FONT][i] = 
+
+    bgi_font_magnification[TRIPLEX_FONT][i] =
     (float) trip_h[i] / (float) trip_height;
 
-    bgi_font_magnification[SMALL_FONT][i] = 
+    bgi_font_magnification[SMALL_FONT][i] =
     (float) litt_h[i] / (float) litt_height;
 
-    bgi_font_magnification[SANS_SERIF_FONT][i] = 
+    bgi_font_magnification[SANS_SERIF_FONT][i] =
     (float) sans_h[i] / (float) sans_height;
-    
-    bgi_font_magnification[GOTHIC_FONT][i] = 
-    (float) goth_h[i] / (float) goth_height;
-    
-    bgi_font_magnification[SCRIPT_FONT][i] = 
-    (float) scri_h[i] / (float) scri_height;
-    
-    bgi_font_magnification[SIMPLEX_FONT][i] = 
-    (float) simp_h[i] / (float) simp_height;
-    
-    bgi_font_magnification[TRIPLEX_SCR_FONT][i] = 
-    (float) tscr_h[i] / (float) tscr_height;
-    
-    bgi_font_magnification[COMPLEX_FONT][i] = 
-    (float) lcom_h[i] / (float) lcom_height;
-    
-    bgi_font_magnification[EUROPEAN_FONT][i] = 
-    (float) euro_h[i] / (float) euro_height;
-    
-    bgi_font_magnification[BOLD_FONT][i] = 
-    (float) bold_h[i] / (float) bold_height;
-  
-  } // for i
 
+    bgi_font_magnification[GOTHIC_FONT][i] =
+    (float) goth_h[i] / (float) goth_height;
+
+    bgi_font_magnification[SCRIPT_FONT][i] =
+    (float) scri_h[i] / (float) scri_height;
+
+    bgi_font_magnification[SIMPLEX_FONT][i] =
+    (float) simp_h[i] / (float) simp_height;
+
+    bgi_font_magnification[TRIPLEX_SCR_FONT][i] =
+    (float) tscr_h[i] / (float) tscr_height;
+
+    bgi_font_magnification[COMPLEX_FONT][i] =
+    (float) lcom_h[i] / (float) lcom_height;
+
+    bgi_font_magnification[EUROPEAN_FONT][i] =
+    (float) euro_h[i] / (float) euro_height;
+
+    bgi_font_magnification[BOLD_FONT][i] =
+    (float) bold_h[i] / (float) bold_height;
+
+  } // for i
+  
 } // initwindow ()
 
 // -----
 
 int ismouseclick (int btn)
 {
-  // Returns 1 if the 'btn' mouse button was clicked.
+  // Returns 1 if the 'btn' mouse button is being clicked.
 
   SDL_PumpEvents ();
 
@@ -5093,38 +5317,87 @@ int ismouseclick (int btn)
 
 int mouseclick (void)
 {
-  // Returns the code of the mouse button that was clicked,
-  // or 0 if none was clicked.
+  // Returns the code of the current mouse event
+  // (WM_MOUSEMOVE, WM_LBUTTONDOWN etc.),
+  // or SDL_FALSE if no mouse event is occurring.
 
-  SDL_Event event;
-
-  while (1) {
-
-    if (SDL_PollEvent (&event)) {
-
-      if (SDL_MOUSEBUTTONDOWN == event.type) {
-        bgi_mouse.x = event.button.x;
-        bgi_mouse.y = event.button.y;
-	// double clicks are only available in SDL2 >= 2.0.2
-        return (event.button.button);
-      }
-      else
-        if (SDL_MOUSEMOTION == event.type) {
-          bgi_mouse.x = event.motion.x;
-          bgi_mouse.y = event.motion.y;
-          return (WM_MOUSEMOVE);
+  int
+    type;
+  
+  int
+    tmp = bgi_fast_mode;
+  bgi_fast_mode = SDL_FALSE;
+  
+  // mouse coords and buttons are set by event ()
+  
+  if (event ()) {
+  
+    type = bgi_last_event;
+  
+    switch (type) {
+    
+    case SDL_MOUSEBUTTONDOWN:
+      bgi_fast_mode = tmp;
+      if (2 == bgi_mouse.clicks)
+        switch (bgi_mouse.btn) {
+	case SDL_BUTTON_LEFT:
+          return WM_LBUTTONDBLCLK;
+          break;
+	case SDL_BUTTON_MIDDLE:
+          return WM_MBUTTONDBLCLK;
+          break;
+	case SDL_BUTTON_RIGHT:
+          return WM_RBUTTONDBLCLK;
+          break;
+        } // switch 
+      else // single click
+        switch (bgi_mouse.btn) {
+	case SDL_BUTTON_LEFT:
+          return WM_LBUTTONDOWN;
+          break;
+	case SDL_BUTTON_MIDDLE:
+          return WM_MBUTTONDOWN;
+          break;
+	case SDL_BUTTON_RIGHT:
+          return WM_RBUTTONDOWN;
+          break;
         }
-      else {
-        SDL_PushEvent (&event); // don't disrupt the keyboard
-        return SDL_FALSE;
-      }
-      return SDL_FALSE;
+      break;
+      
+    case SDL_MOUSEBUTTONUP:
+      bgi_fast_mode = tmp;
+      switch (bgi_mouse.btn) {
+      case SDL_BUTTON_LEFT:
+        return WM_LBUTTONUP;
+        break;
+      case SDL_BUTTON_MIDDLE:
+        return WM_MBUTTONUP;
+        break;
+      case SDL_BUTTON_RIGHT:
+        return WM_RBUTTONUP;
+        break;
+      } // switch 
+      break;
+      
+    case SDL_MOUSEMOTION:
+      bgi_fast_mode = tmp;
+      return SDL_MOUSEMOTION;
+      break;
 
-    } // if
-    else
-      return SDL_FALSE;
+    case SDL_MOUSEWHEEL:
+      bgi_fast_mode = tmp;
+      return bgi_mouse.wheel;
+      break;
+      
+    default:
+      ;
+      
+    } // switch (type)
+    
+  } // if event
 
-  } // while
+  bgi_fast_mode = tmp;
+  return SDL_FALSE;
 
 } // mouseclick ()
 
@@ -5185,24 +5458,40 @@ void putlinebuffer (int y, Uint32 *linebuffer)
 
 // -----
 
+void copysurface (SDL_Surface *surface, int x1, int y1, int x2, int y2)
+{
+  // Copies a surface to the active page
+
+  Uint32
+    *pixels = surface->pixels;
+
+  for (int y = y1; y < y2; y++)
+    for (int x = x1; x < x2; x++)
+      PIXEL (x, y) = pixels[y * (bgi_maxx + 1) + x] | 0xff000000;
+
+} // _copysurface ()
+
+// -----
+
 void readimagefile (char *bitmapname, int x1, int y1, int x2, int y2)
 {
-  // Reads a .bmp file and displays it immediately at (x1, y1 ).
+  // Reads a .bmp file and displays it immediately at (x1, y1).
 
   check_initgraph ();
 
-  Uint32
-    *pixels;
   SDL_Surface
-    *bm_surface,
+    *bmp_surface,
     *tmp_surface;
+
   SDL_Rect
     src_rect,
     dest_rect;
 
   // load bitmap
-  bm_surface = SDL_LoadBMP (bitmapname);
-  if (NULL == bm_surface) {
+
+  bmp_surface = SDL_LoadBMP (bitmapname);
+
+  if (NULL == bmp_surface) {
     SDL_Log ("SDL_LoadBMP() error: %s\n", SDL_GetError ());
     showerrorbox ("SDL_LoadBMP() error");
     return;
@@ -5211,8 +5500,8 @@ void readimagefile (char *bitmapname, int x1, int y1, int x2, int y2)
   // source rect, position and size
   src_rect.x = 0;
   src_rect.y = 0;
-  src_rect.w = bm_surface->w;
-  src_rect.h = bm_surface->h;
+  src_rect.w = bmp_surface->w;
+  src_rect.h = bmp_surface->h;
 
   // destination rect, position
   dest_rect.x = x1 + vp.left;
@@ -5237,20 +5526,16 @@ void readimagefile (char *bitmapname, int x1, int y1, int x2, int y2)
   tmp_surface = SDL_GetWindowSurface (bgi_win[bgi_current_window]);
 
   // blit bitmap surface to current surface
-  SDL_BlitScaled (bm_surface,
-                  &src_rect,
-                  tmp_surface,
-                  &dest_rect);
+  SDL_BlitScaled (bmp_surface, &src_rect,
+                  tmp_surface, &dest_rect);
 
   // copy pixel data from the new surface to the active page
-  pixels = tmp_surface->pixels;
-
-  for (int y = dest_rect.y; y < dest_rect.y + dest_rect.h; y++)
-    for (int x = dest_rect.x; x < dest_rect.x + dest_rect.w; x++)
-      PIXEL (x, y) = pixels[y * (bgi_maxx + 1) + x] | 0xff000000;
+  copysurface (tmp_surface, dest_rect.x, dest_rect.y,
+               dest_rect.x + dest_rect.w, dest_rect.y + dest_rect.h);
 
   refresh_window ();
-  SDL_FreeSurface (bm_surface);
+  SDL_FreeSurface (bmp_surface);
+  SDL_FreeSurface (tmp_surface);
 
 } // readimagefile ()
 
@@ -5260,13 +5545,17 @@ void refresh (void)
 {
   // Updates the screen.
 
+#ifndef __EMSCRIPTEN__
   if (bgi_update_mutex)
     SDL_LockMutex (bgi_update_mutex);
+#endif
 
   refresh_window ();
 
+#ifndef __EMSCRIPTEN__
   if (bgi_update_mutex)
     SDL_UnlockMutex (bgi_update_mutex);
+#endif
 
 } // refresh ()
 
@@ -5304,28 +5593,30 @@ void resizepalette (Uint32 newsize)
 
   void
     *ptr;
-  
+
   check_initgraph ();
-  
+
   ptr = realloc (bgi_argb_palette,
 		 (BGI_COLORS + TMP_COLORS + PALETTE_SIZE) *
 		 sizeof (Uint32));
   if (NULL == ptr) {
-    char *str = 
+    char *str =
       "Could not resize the global palette; leaving it unchanged.\n";
     fprintf (stderr, "%s", str);
     showinfobox (str);
     exit (0);
   }
-  
+
   bgi_argb_palette = ptr;
   PALETTE_SIZE = newsize;
-  
+
 } // resizepalette ()
 
 // -----
 
 // callback for sdlbgiauto ()
+
+#ifndef __EMSCRIPTEN__
 
 static Uint32 updatecallback (Uint32 interval, void *param)
 {
@@ -5344,22 +5635,28 @@ static Uint32 updatecallback (Uint32 interval, void *param)
 
 } // updatecallback ()
 
+#endif
+
 // -----
 
 static void update (void)
 {
   // Conditionally refreshes the screen or schedule it
 
+#ifndef __EMSCRIPTEN__
   if (bgi_update_mutex)
     SDL_LockMutex (bgi_update_mutex);
+#endif
 
   if (! bgi_fast_mode)
     refresh_window ();
   else
     bgi_refresh_needed = SDL_TRUE;
 
+#ifndef __EMSCRIPTEN__
   if (bgi_update_mutex)
     SDL_UnlockMutex (bgi_update_mutex);
+#endif
 
 } // update ()
 
@@ -5369,16 +5666,20 @@ static void update_pixel (int x, int y)
 {
   // Updates a single pixel
 
+#ifndef __EMSCRIPTEN__
   if (bgi_update_mutex)
     SDL_LockMutex (bgi_update_mutex);
+#endif
 
   if (! bgi_fast_mode)
     updaterect (x, y, x, y);
   else
     bgi_refresh_needed = SDL_TRUE;
 
+#ifndef __EMSCRIPTEN__
   if (bgi_update_mutex)
     SDL_UnlockMutex (bgi_update_mutex);
+#endif
 
 } // update_pixel ()
 
@@ -5387,7 +5688,8 @@ static void update_pixel (int x, int y)
 void sdlbgiauto (void)
 {
   // Triggers "auto refresh mode", i.e. refresh() is performed
-  // automatically on a separate thread.
+  // automatically on a separate thread. 
+  // Auto mode can't work in Emscripten.
 
   check_initgraph ();
 
@@ -5410,8 +5712,13 @@ void sdlbgiauto (void)
 
   interval = (Uint32) 1000.0 / bgi_refresh_rate;
 
+#ifndef __EMSCRIPTEN__
   // install a timer to periodically update the screen
   SDL_AddTimer (interval, updatecallback, NULL);
+#else
+  (void) interval;
+#endif
+
   bgi_fast_mode = SDL_TRUE;
   bgi_auto_mode = SDL_TRUE;
 
@@ -5450,12 +5757,12 @@ void setallrgbpalette (struct rgbpalettetype *palette)
   // Sets the current RGB palette to the values given in palette.
 
   check_initgraph ();
-  
+
   if (NULL == palette)
     return;
 
   palette->size = PALETTE_SIZE;
-  
+
   for (int i = 0; i < PALETTE_SIZE; i++)
     bgi_argb_palette[BGI_COLORS + TMP_COLORS + i] = palette->colors[i];
 
@@ -5467,11 +5774,12 @@ void setalpha (int col, Uint8 alpha)
 {
   // Sets alpha transparency for 'col' to 'alpha' (0-255).
 
-  Uint32 tmp;
+  Uint32
+    tmp;
 
   if (col < -1)
     return;
-  
+
   // COLOR () or COLOR32 () or RGBPALETTE() set the ARGB_FG_COL colour
   if (-1 == col)
     bgi_fg_color = ARGB_FG_COL;
@@ -5503,7 +5811,7 @@ void setbkrgbcolor (int colornum)
 
 void setblendmode (int blendmode)
 {
-  // Sets the blending mode; it can be either 
+  // Sets the blending mode; it can be either
   // SDL_BLENDMODE_NONE or SDL_BLENDMODE_BLEND
 
   bgi_blendmode = blendmode;
@@ -5561,7 +5869,7 @@ void setrgbpalette (int colornum, int red, int green, int blue)
   // r, g, and b components.
 
   check_initgraph ();
-  
+
   if (colornum < PALETTE_SIZE + 1 && colornum >= 0)
     bgi_argb_palette[BGI_COLORS + TMP_COLORS + colornum] =
     0xff000000 | red << 16 | green << 8 | blue;
@@ -5721,14 +6029,14 @@ static void updaterect (int x1, int y1, int x2, int y2)
   }
   SDL_RenderPresent (bgi_rnd[bgi_current_window]);
 
-} // updaterect()
+} // updaterect ()
 
 // -----
 
 void writeimagefile (char *filename,
                      int left, int top, int right, int bottom)
 {
-  // Writes a .bmp file from the screen rectangle defined by 
+  // Writes a .bmp file from the screen rectangle defined by
   // 'left', 'top', 'right', 'bottom'.
 
   check_initgraph ();
@@ -5778,22 +6086,27 @@ int xkbhit (void)
   // Returns 1 when any key is pressed, or QUIT
   // if the user asked to close the window
 
-  SDL_Event event;
+  SDL_Event
+    event;
 
   update ();
 
-  if (SDL_TRUE == bgi_xkey_pressed) { // a key was pressed during delay()
+  // ??? bgi_xkey_pressed ???
+  if (SDL_TRUE == bgi_xkey_pressed) { // a key was pressed during delay ()
     bgi_xkey_pressed = SDL_FALSE;
     return SDL_TRUE;
   }
 
   if (SDL_PollEvent (&event)) {
-    if (SDL_KEYDOWN == event.type)
+    if (SDL_KEYDOWN == event.type) {
+      bgi_last_event = SDL_KEYDOWN;
+      bgi_last_key_pressed = (int) event.key.keysym.sym;
       return SDL_TRUE;
+    }
     else
       if (SDL_WINDOWEVENT == event.type) {
         if (SDL_WINDOWEVENT_CLOSE == event.window.event)
-          return QUIT;
+          return SDL_QUIT;
       }
     else
       SDL_PushEvent (&event); // don't disrupt the mouse

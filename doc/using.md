@@ -8,6 +8,12 @@
 
 # Using `SDL_bgi`
 
+If you're familiar with BGI, the Borland Graphics Interface
+(`GRAPHICS.H`) provided by Turbo C or Borland C++, then using
+`SDL_bgi` along with `gcc` or `clang` will be straighforward. If you
+don't even know what BGI was, don't worry: you will find `SDL_bgi` an
+easy and fun way to do graphics programming in C.
+
 Although `SDL_bgi` is almost perfectly compatible with the original
 `GRAPHICS.H` by Borland, a few minor differences have been introduced.
 The original BGI library mainly targeted the VGA video display
@@ -19,9 +25,26 @@ colours. `SDL_bgi` uses modern graphics capabilities provided by
 ## Compiling Programs
 
 To compile a C or C++ program on GNU/Linux, macOS or Raspios you can
-use the `gcc` or `clang` compiler:
+use the `gcc`,`clang`, or `tcc` compilers. With `gcc` or `clang`:
 
     $ gcc -o program program.c -lSDL_bgi -lSDL2
+
+With `tcc`:
+
+    $ tcc -o program program.c -w -D SDL_DISABLE_IMMINTRIN_H \
+        -I /usr/include/SDL2 -lSDL_bgi -lSDL2
+
+You may get compilation errors affecting `libpulsecommon`; they can be
+safely ignored.
+
+`tcc` can also be invoked from scripts. You just need to add the
+following line (it can't be split with `\`) at the start of your C
+source (GNU/Linux):
+
+    #!/usr/bin/tcc -run -w -D SDL_DISABLE_IMMINTRIN_H -I /usr/include/SDL2 -lSDL_bgi -lSDL2
+
+but for better compatibility, please have a look at the `test/tccrun`
+script.
 
 To compile a program in MSYS2 + mingw-w64:
 
@@ -29,7 +52,7 @@ To compile a program in MSYS2 + mingw-w64:
         -lSDL_bgi -lSDL2main -lSDL2 # -mwindows
 
 The `-mwindows` switch creates a window-only program, i.e. a terminal
-is not started. **Beware:** functions provided by `stdio.h` will not
+is not started. *Beware:* functions provided by `stdio.h` will not
 work if you don't start a terminal; your program will have to rely on
 mouse input only.
 
@@ -37,7 +60,25 @@ Code::Blocks users should read the file `howto_CodeBlocks.md`.
 
 Dev-C++ users should read the file `howto_Dev-Cpp.md`.
 
-Windows users **must** declare the `main()` function as:
+To compile a program to WebAsssembly using `emcc`:
+
+    $ emcc -o program.html program.c \
+        -std=gnu99 -O2 -Wall -lSDL_bgi -lm \
+        -s USE_SDL=2             `# uses SDL2 module` \
+        -s ALLOW_MEMORY_GROWTH=1 `# needed for the argb palette` \
+        -s ASYNCIFY              `# implement loops` \
+        -s SINGLE_FILE           `# standalone html files`
+
+where `SDL_bgi.bc` is the precompiled `SDL_bgi` wasm module.
+The resulting `program.html` can be loaded and run in web browsers,
+without the need of starting a local web server:
+
+    $ firefox program.html
+
+
+### Compilation details
+
+Windows users *must* declare the `main()` function as:
 
     int main (int argc, char *argv[])
 
@@ -54,7 +95,8 @@ unmodified. For instance,
     initgraph (&gd, &gm, "");
 
 opens an 800x600 window, mimicking SVGA graphics. If the environment
-variable `SDL_BGI_RES` is `VGA`, window resolution will be 640x480.
+variable `SDL_BGI_RES` is set to  `VGA`, window resolution will be
+640x480.
 
 Minimal `dos.h` and `conio.h` are provided in the `test/` directory;
 they're good enough to compile the original `bgidemo.c`.
@@ -112,7 +154,7 @@ new function `refresh()`.
 The first method is fully compatible with the original BGI, but it
 also painfully slow. An experimental feature is 'auto mode': if the
 environment variable `SDL_BGI_RATE` is set to `auto`, screen refresh
-is automatically performed; this is **much** faster than the default.
+is automatically performed; this is *much* faster than the default.
 This variable may also contain a refresh rate; e.g. 60. Unfortunately,
 auto mode may not work on some NVIDIA graphic cards.
 
@@ -127,7 +169,7 @@ Documentation and sample BGI programs are available at this address:
 
 Nearly all programs can be compiled with `SDL_bgi`.
 
-The original Borland Turbo C 2.0 manual is also available at:
+The original Borland Turbo C 2.0 manual is also available here:
 
 <https://archive.org/details/bitsavers_borlandturReferenceGuide1988_19310204>.
 
@@ -220,7 +262,8 @@ and can be used by native SDL2 functions; see example in
 ### Screen and Windows Functions
 
 - `void initwindow(int width, int height)` lets you open a window
-specifying its size.
+specifying its size. If either `width` or `height` is 0, then
+`SDL_FULLSCREEN` will be used.
 
 - `void detectgraph(int *gd, int *gm)` returns `SDL`,
 `SDL_FULLSCREEN`.
@@ -331,9 +374,9 @@ on a single line of pixels at `y` coordinate.
 
 ### Mouse Functions
 
-- `int mouseclick(void)` returns the code of the mouse button that was
-clicked, or 0 if none was clicked. Mouse buttons and movement
-constants are defined in `SDL_bgi.h`:
+- `int mouseclick(void)` returns the code of the mouse button that 
+is being clicked, 0 otherwise. Mouse buttons and movement constants
+are defined in `SDL_bgi.h`:
 
 ```
 WM_LBUTTONDOWN
@@ -344,6 +387,10 @@ WM_WHEELUP
 WM_WHEELDOWN
 WM_MOUSEMOVE
 ```
+
+- `int isdoubleclick(void)` returns 1 if the last mouse click was a
+double click.
+
 
 - `int mousex(void)` and `int mousey(void)` return the mouse
 coordinates of the last click.
@@ -357,6 +404,9 @@ coordinates of the last button click expected by `ismouseclick()`.
 - `void getleftclick(void)`, `void getmiddleclick(void)`, and `void
 getrightclick(void)` wait for the left, middle, and right mouse button
 to be clicked and released.
+
+- `int getclick(void)` waits for a mouse click and returns the button
+that was clicked.
 
 
 ### Miscellaneous Functions
@@ -395,6 +445,8 @@ int bottom)` writes a `.bmp` file from the screen rectangle defined by
 - `void kbhit(void)` returns 1 when a key is pressed, excluding
 Shift, Alt, etc.
 
+- `int lastkey(void)` returns the last key that was detected by
+ `kbhit()`.
 
 - `void xkbhit(void)` returns 1 when any key is pressed, including
 Shift, Alt, etc.

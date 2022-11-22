@@ -1,7 +1,8 @@
 # Makefile for test SDL_bgi programs
 # Please note that f90_test.f90 is not included
 
-# C compiler: gcc or clang
+# C compiler: gcc, clang, or tcc
+# CC = tcc -w -D SDL_DISABLE_IMMINTRIN_H
 CC = gcc
 
 # Detect the platform: GNU/Linux, Darwin (macOS), Mingw-w64
@@ -22,16 +23,17 @@ endif
 # Latest MSYS2 + Mingw-w64
 msys := $(findstring _NT, $(PLATFORM))
 ifeq ($(msys),_NT)
+# use MinGW-64 native SDL2 packages
 CFLAGS = -std=gnu99 -O2 -g -I. -I/mingw64/include -I/mingw64/include/SDL
 # -mconsole = open a console alongside the program
 # -mwindows = Windows-only program (no console)
 LIBS = -lmingw32 -L/mingw64/bin -lSDL_bgi -lSDL2main -lSDL2 # -mwindows
 endif
 
-PROGRAMS = boo buffers cellular dla fern floodfilltest fonts \
-           hopalong life linebuffers kaleido mandelbrot mousetest \
-	   multiwin plasma psychedelia rgbpalette sdlbgidemo \
-	   simple turtledemo
+PROGRAMS = boo buffers cellular dla fern floodfilltest \
+	   fonts hopalong kaleido life linebuffers \
+	   mandelbrot mousetest multiwin plasma pdj psychedelia \
+	   rgbpalette sdlbgidemo simple turtledemo
 
 all: $(PROGRAMS)
 
@@ -49,7 +51,7 @@ endif
 
 bgidemo.c:
 ifdef WGET
-	wget http://libxbgi.sourceforge.net/bgidemo.c
+	wget http://sdl-bgi.sourceforge.io/bgidemo.c
 else
 	$(info Could not find 'wget', can't download bgidemo.c)
 endif
@@ -84,6 +86,10 @@ life: life.c
 linebuffers: linebuffers.c 
 	$(CC) $(CFLAGS) -o linebuffers linebuffers.c $(LIBS)
 
+# you need SDL2_Image to compile this program
+loadimage: loadimage.c 
+	$(CC) $(CFLAGS) -o loadimage loadimage.c $(LIBS) -lSDL2_image
+
 kaleido: kaleido.c 
 	$(CC) $(CFLAGS) -o kaleido kaleido.c $(LIBS)
 
@@ -95,6 +101,9 @@ mousetest: mousetest.c
 
 multiwin: multiwin.c 
 	$(CC) $(CFLAGS) -o multiwin multiwin.c $(LIBS)
+
+pdj: pdj.c 
+	$(CC) $(CFLAGS) -o pdj pdj.c $(LIBS) -lm
 
 plasma: plasma.c 
 	$(CC) $(CFLAGS) -o plasma plasma.c $(LIBS) -lm
@@ -115,6 +124,6 @@ turtledemo: turtledemo.c turtle.c
 	$(CC) $(CFLAGS) -o turtledemo turtledemo.c turtle.c $(LIBS) -lm
 
 clean:
-	rm -rf $(PROGRAMS) bgidemo* a.out *o f90_test *dSYM
+	/bin/rm -rf $(PROGRAMS) bgidemo.c *~ a.out *o f90_test *dSYM *exe
 
 # --- end of Makefile

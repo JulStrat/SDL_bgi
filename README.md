@@ -26,26 +26,23 @@ programs, too.
 
 `SDL_bgi` should compile on any platform supported by SDL2; it has
 been tested on GNU/Linux, MS Windows (MSYS2 + Mingw-w64, CodeBlocks,
-Dev-C++), macOS (High Sierra and Catalina), and Raspios (ARM, i386). A
-few example programs are provided in the `test/` directory.
-
-If you don't need BGI compatibility, I suggest that you check out
-`SDL_gfx`, a graphics library that is more complete and more powerful
-than `SDL_bgi`.
+Dev-C++), macOS (High Sierra and Catalina), Raspios (ARM, i386), and
+WebAssembly (Emscripten). A few example programs are provided in the
+`test/` directory.
 
 Links:
 
-0. The SDL library:
+0. `SDL_bgi` home page:
+   <http://sdl-bgi.sourceforge.io/>
+
+1. The SDL library:
    <https://www.libsdl.org/>
 
-1. BGI on Wikipedia:
+2. BGI on Wikipedia:
    <https://en.wikipedia.org/wiki/Borland_Graphics_Interface>
 
-2. WinBGIm, another BGI Windows port:
-   <http://www.cs.colorado.edu/~main/cs1300/doc/bgi/>
-
-3. SDL_gfx, graphics drawing primitives and more:
-   <https://sourceforge.net/projects/sdl2gfx/>
+3. WinBGIm, a BGI port for Windows:
+   <http://www.codecutter.net/tools/winbgim/>
 
 4. Xbgi, a BGI XLib port:
    <http://libxbgi.sourceforge.net/>

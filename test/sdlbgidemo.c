@@ -3,7 +3,7 @@
  * To compile:
  * gcc -o sdlbgidemo sdlbgidemo.c -lSDL_bgi -lSDL2 -lm
  * 
- * By Guido Gonzato, 2018 - 2020
+ * By Guido Gonzato, 2018-2022
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,71 +29,39 @@ int
   maxx, maxy,
   width, height;
 
-int gd, gm;
-
 struct viewporttype viewport;
 
-void pause1 (int);
 void get_click (void);
+void leave (void);
 void ket_key (void);
-void pause2 (void);
+void pause (void);
 void init_sdlbgi (void);
 void message (char *str);
 void mainwindow (void);
 
 // -----
 
-void pause1 (int msec)
-{
-  int stop = 0;
-  Uint32
-    ticks,
-    now = SDL_GetTicks ();
-  
-  while (! stop) {
-    if (kbhit ())
-      stop = 1;
-    
-    ticks = SDL_GetTicks ();
-    if (ticks - now > msec)
-      stop = 1;
-  }
-  
-} // pause1 ()
-
-// -----
-
 void get_click (void)
 {
-  // wait for a mouse click
-  while (! ismouseclick (WM_LBUTTONDOWN))
-    ;
+
+  if (WM_RBUTTONDOWN == getclick ())
+    leave ();
+#ifndef __EMSCRIPTEN__
   while (ismouseclick (WM_LBUTTONDOWN))
     ;
-
+#endif
+  
 } // get_click ()
 
 // -----
 
-void pause2 (void)
+void leave (void)
 {
-  // pause and exit if right click
-  int
-    stop = 0;
   
-  while (! stop) {
-    if (ismouseclick (WM_LBUTTONDOWN))
-      stop = 1;
-    if (ismouseclick (WM_RBUTTONDOWN)) {
-      closegraph ();
-      exit (1);
-    }
-  }
+  closegraph ();
+  exit (1);
   
-  while (ismouseclick (WM_LBUTTONDOWN))
-    ;
-
-} // pause2 ()
+} // leave ()
 
 // -----
 
@@ -104,9 +72,7 @@ void init_sdlbgi (void)
 		 SDL_WINDOWPOS_UNDEFINED,
 		 SDL_WINDOWPOS_UNDEFINED,
 		 SDL_WINDOW_FULLSCREEN);
-  detectgraph (&gd, &gm);
-  initgraph (&gd, &gm, "");
-  // initwindow (0, 0);
+  initwindow (0, 0);
   sdlbgifast ();
   maxx = getmaxx ();
   maxy = getmaxy ();
@@ -175,7 +141,7 @@ void load_logo ()
   		 SDL_WINDOW_BORDERLESS);
   initwindow (440, 150);
   readimagefile ("logo.bmp", 0, 0, 440, 150);
-  pause1 (2000);
+  delay (2000);
   closewindow (0);
   
 }
@@ -217,6 +183,7 @@ void sdlbgi_info (void)
   gettextsettings (&textinfo); // text style info
   getpalette (&palette );
   driver = getdrivername ();
+  int gm = 0;
   mode = getmodename (gm);
   
   x = width / 2; // screen centre
@@ -251,29 +218,10 @@ void sdlbgi_info (void)
   outtextxy (x, y += dy, str);
   sprintf (str, "%s", viewport.clip ? "ON" : "OFF");
   outtextxy (x, y += dy, str);
-  
-  // we can't use XXX_VALUE on standard colours!
-  // sprintf (str, "0x%02X%02X%02X", 
-  //	   RED_VALUE (getbkcolor ()),
-  //	   GREEN_VALUE (getbkcolor ()),
-  //	   BLUE_VALUE (getbkcolor ()));
-  
   sprintf (str, "%d", getcolor ());
   outtextxy (x, y += dy, str);
-  
-  // sprintf (str, "0x%02X%02X%02X", 
-  // 	   RED_VALUE (getcolor ()),
-  // 	   GREEN_VALUE (getcolor ()),
-  //	   BLUE_VALUE (getcolor ()));
-  
   sprintf (str, "%d", getbkcolor ());
   outtextxy (x, y += dy, str);
-  
-  // sprintf (str, "0x%02X%02X%02X", 
-  //	   RED_VALUE (fillinfo.color),
-  //	   GREEN_VALUE (fillinfo.color),
-  //	   BLUE_VALUE (fillinfo.color));
-
   sprintf (str, "%d", fillinfo.color);  
   outtextxy (x, y += dy, str);
   sprintf (str, "%d", textinfo.charsize);
@@ -284,77 +232,9 @@ void sdlbgi_info (void)
   outtextxy (x, y += dy, str);
 
   refresh ();
-  pause2 ();
+  get_click ();
 
 } // sdlbgi_info ()
-
-// -----
-
-void modedemo ()
-{
-  int
-    dx, y, size;
-  void
-    *m;
-  
-  message ("Plotting Bitwise Operators Demonstration");
-  mainwindow ();
-  getviewsettings (&viewport);
-  dx = (viewport.right - viewport.left - 100) / 5;
-  y = (viewport.bottom - viewport.top) / 3;
-  
-  /* draw a red rectangle and store it */
-  settextjustify (LEFT_TEXT, TOP_TEXT);
-  setfillstyle (SOLID_FILL, RED);
-  bar (50, y, 50 + dx - 10, y + dx - 10);
-  size = imagesize (50, y, 50 + dx - 10, y + dx - 10);
-  m = malloc (size);
-  getimage (50, y, 50 + dx - 10, y + dx - 10, m);
-  
-  /* draw five yellow rectangles */
-  setcolor (WHITE);
-  setfillstyle (SOLID_FILL, YELLOW);
-  for (int i = 0 ; i < 5; i++)
-    bar (50 + i*dx, y, 50 + i*dx + dx - 10, y + dx - 10);
-  
-  outtextxy (50 + 0*dx, y - 20, "COPY_PUT");
-  outtextxy (50 + 1*dx, y - 20, "XOR_PUT");
-  outtextxy (50 + 2*dx, y - 20, "OR_PUT");
-  outtextxy (50 + 3*dx, y - 20, "AND_PUT");
-  outtextxy (50 + 4*dx, y - 20, "NOT_PUT");
-  setcolor (BLACK);
-  
-  outtextxy (60, y + 10, "ffff00 (yellow)");
-  
-  // COPY_PUT: red: ff0000
-  putimage  (50 + 0*dx, y + dx/2, m, COPY_PUT);
-  outtextxy (60 + 0*dx, y + dx/2 + 20, "ff0000");
-  outtextxy (60 + 0*dx, y + dx/2 + 30, "(red)");
-  
-  // XOR_PUT: red xor yellow: ff0000 ^ ffff00 = 00ff00 (green)
-  putimage  (50 + 1*dx, y + dx/2, m, XOR_PUT);
-  outtextxy (60 + 1*dx, y + dx/2 + 20, "ff0000 ^ ffff00 = 00ff00");
-  outtextxy (60 + 1*dx, y + dx/2 + 30, "(green)");
-  
-  // OR_PUT: red or yellow: ff0000 | ffff00 = ffff00 (yellow)
-  putimage  (50 + 2*dx, y + dx/2, m, OR_PUT);
-  outtextxy (60 + 2*dx, y + dx/2 + 20, "ff0000 | ffff00 = ffff00");
-  outtextxy (60 + 2*dx, y + dx/2 + 30, "(yellow)");
-  
-  // AND_PUT: red and yellow: ff0000 & ffff00 = ff0000 (red)
-  putimage  (50 + 3*dx, y + dx/2, m, AND_PUT);
-  outtextxy (60 + 3*dx, y + dx/2 + 20, "ff0000 & ffff00 = 00ff00");
-  outtextxy (60 + 3*dx, y + dx/2 + 30, "(red)");
-  
-  // NOT_PUT: ~ red: 00ffff (cyan)
-  putimage  (50 + 4*dx, y + dx/2, m, NOT_PUT);
-  outtextxy (60 + 4*dx, y + dx/2 + 20, "~ ff0000 = 00ffff");
-  outtextxy (60 + 4*dx, y + dx/2 + 30, "(cyan)");
-
-  refresh ();
-  pause2 ();
-  
-} // modedemo ()
 
 // -----
 
@@ -380,29 +260,25 @@ void colordemo (void)
     
     for (col3 = 0; col3 < 256; col3++) {
       setcolor (COLOR (col1, col2, col3));
-      // draw lines
+      // draw line
       for (i = 0; i < 3; i++) {
 	line (x, y - maxy / 3, x, y + maxy / 3);
 	x++;
       }
-      if (ismouseclick (WM_RBUTTONDOWN)) {
-	closegraph ();
-	exit (1);
-      }
+      if (ismouseclick (WM_RBUTTONDOWN))
+	leave ();
     } // for
     
     refresh ();
     x = (viewport.right - viewport.left) / 2 - (256 * 3) / 2;
     
-    delay (100);
-    
     if (ismouseclick (WM_LBUTTONDOWN))
       stop = 1;
     
-    if (ismouseclick (WM_RBUTTONDOWN)) {
-      closegraph ();
-      exit (1);
-    }
+    if (ismouseclick (WM_RBUTTONDOWN))
+      leave ();
+      
+    delay (100);
   
   } // while
   
@@ -437,10 +313,8 @@ void pixeldemo (void)
     if (ismouseclick (WM_LBUTTONDOWN))
       stop = 1;
     
-    if (ismouseclick (WM_RBUTTONDOWN)) {
-      closegraph ();
-      exit (1);
-    }
+    if (ismouseclick (WM_RBUTTONDOWN))
+      leave ();
   
   } // while
   
@@ -493,10 +367,8 @@ void linedemo (void)
     if (ismouseclick (WM_LBUTTONDOWN))
       stop = 1;
     
-    if (ismouseclick (WM_RBUTTONDOWN)) {
-      closegraph ();
-      exit (1);
-    }
+    if (ismouseclick (WM_RBUTTONDOWN))
+      leave ();
   
   } // while
   
@@ -572,10 +444,8 @@ void linereldemo (void)
     if (ismouseclick (WM_LBUTTONDOWN))
       stop = 1;
     
-    if (ismouseclick (WM_RBUTTONDOWN)) {
-      closegraph ();
-      exit (1);
-    }
+    if (ismouseclick (WM_RBUTTONDOWN))
+      leave ();
   
   } // while
   
@@ -618,10 +488,8 @@ void boxdemo (void)
     if (ismouseclick (WM_LBUTTONDOWN))
       stop = 1;
     
-    if (ismouseclick (WM_RBUTTONDOWN)) {
-      closegraph ();
-      exit (1);
-    }
+    if (ismouseclick (WM_RBUTTONDOWN))
+      leave ();
   
   } // while
   
@@ -667,10 +535,8 @@ void polygondemo (void)
     if (ismouseclick (WM_LBUTTONDOWN))
       stop = 1;
     
-    if (ismouseclick (WM_RBUTTONDOWN)) {
-      closegraph ();
-      exit (1);
-    }
+    if (ismouseclick (WM_RBUTTONDOWN))
+      leave ();
   
   } // while
   
@@ -724,10 +590,8 @@ void circledemo (void)
     if (ismouseclick (WM_LBUTTONDOWN))
       stop = 1;
     
-    if (ismouseclick (WM_RBUTTONDOWN)) {
-      closegraph ();
-      exit (1);
-    }
+    if (ismouseclick (WM_RBUTTONDOWN))
+      leave ();
     
   } // while
   
@@ -764,10 +628,8 @@ void ellipsedemo (void)
     if (ismouseclick (WM_LBUTTONDOWN))
       stop = 1;
     
-    if (ismouseclick (WM_RBUTTONDOWN)) {
-      closegraph ();
-      exit (1);
-    }
+    if (ismouseclick (WM_RBUTTONDOWN))
+      leave ();
     
   } // while
   
@@ -937,15 +799,13 @@ void floodfilldemo (void)
     if (ismouseclick (WM_LBUTTONDOWN))
       stop = 1;
     
-    if (ismouseclick (WM_RBUTTONDOWN)) {
-      closegraph ();
-      exit (1);
-    }
+    if (ismouseclick (WM_RBUTTONDOWN))
+      leave ();
     
   } // while
   
   refresh ();
-  pause2 ();
+  get_click ();
   
 } // floodfilldemo ()
 
@@ -977,10 +837,8 @@ void alphademo (void)
     if (ismouseclick (WM_LBUTTONDOWN))
       stop = 1;
     
-    if (ismouseclick (WM_RBUTTONDOWN)) {
-      closegraph ();
-      exit (1);
-    }
+    if (ismouseclick (WM_RBUTTONDOWN))
+      leave ();
     
   } // while
   
@@ -1016,10 +874,8 @@ void readimagedemo (void)
     if (ismouseclick (WM_LBUTTONDOWN))
       stop = 1;
     
-    if (ismouseclick (WM_RBUTTONDOWN)) {
-      closegraph ();
-      exit (1);
-    }
+    if (ismouseclick (WM_RBUTTONDOWN))
+      leave ();
     
   } // while
   
@@ -1103,8 +959,7 @@ void putimagedemo (void)
     
     if (ismouseclick (WM_RBUTTONDOWN)) {
       free (image);
-      closegraph ();
-      exit (1);
+      leave ();
     }
     
   } // while
@@ -1177,10 +1032,8 @@ void sdlmixdemo (void)
     }
     if (ismouseclick (WM_LBUTTONDOWN))
       stop = 1;
-    if (ismouseclick (WM_RBUTTONDOWN)) {
-      closegraph ();
-      exit (1);
-    }
+    if (ismouseclick (WM_RBUTTONDOWN))
+      leave ();
   
   } // while
     
@@ -1225,7 +1078,7 @@ void textdemo (void)
   outtextxy (xm, ym, "RIGHT_TEXT, TOP_TEXT");
   refresh ();
   
-  pause2 ();
+  get_click ();
   
   clearviewport ();
   setcolor (RED);
@@ -1251,7 +1104,7 @@ void textdemo (void)
   outtextxy (xm, ym, "RIGHT_TEXT, TOP_TEXT");
   refresh ();
   
-  pause2 ();
+  get_click ();
   
   clearviewport ();
   setcolor (RED);
@@ -1289,7 +1142,7 @@ void pagedemo (void)
   char 
     title [100];
 
-  message ("setactivepage() / setvisualpage () Demonstration");
+  message ("setactivepage() / setvisualpage() Demonstration");
   mainwindow ();
   
   getviewsettings (&viewport);
@@ -1315,7 +1168,7 @@ void pagedemo (void)
   for (num_page = 0; num_page < VPAGES; num_page++) {
     setvisualpage (num_page);
     refresh ();
-    pause2 ();
+    get_click ();
   }
   
   setactivepage (0);
@@ -1324,7 +1177,7 @@ void pagedemo (void)
   outtextxy (xm, ym + 60, "Welcome back to page #0!");
   refresh ();
   
-  pause2 ();
+  get_click ();
 
 } // pagedemo ()
 
@@ -1369,21 +1222,17 @@ void theend (void)
       outtextxy (xm + 1, ym + 1, "That's all, folks!");
       outtextxy (xm - 1, ym - 1, "That's all, folks!");
       refresh ();
-      if (ismouseclick (WM_RBUTTONDOWN)) {
-	closegraph ();
-	exit (1);
-      }
+      if (ismouseclick (WM_RBUTTONDOWN))
+	leave ();
     }
     delay (500);
     
     if (ismouseclick (WM_LBUTTONDOWN))
       stop = 1;
     
-    if (ismouseclick (WM_RBUTTONDOWN)) {
-      closegraph ();
-      exit (1);
-    }
-  
+    if (ismouseclick (WM_RBUTTONDOWN))
+      leave ();
+ 
   } // while
   
   refresh ();
@@ -1395,11 +1244,11 @@ void theend (void)
 
 int main (int argc, char *argv[])
 {
+
   load_logo ();
   
   init_sdlbgi ();
   sdlbgi_info ();
-  // modedemo ();
   colordemo ();
   pixeldemo ();
   linedemo ();
@@ -1416,6 +1265,9 @@ int main (int argc, char *argv[])
   textdemo ();
   pagedemo ();
   theend ();
-  
+  // winclose ();
   return 0;
+
 }
+
+// ----- end of file sdlbgidemo.c

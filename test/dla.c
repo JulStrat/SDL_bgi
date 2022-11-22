@@ -62,6 +62,13 @@ int main (int argc, char *argv[])
   initgraph (&gd, &gm, "");
   
   setbkcolor (BLACK);
+  setcolor (RED);
+  cleardevice ();
+  settextjustify (CENTER_TEXT, CENTER_TEXT);
+  outtextxy (getmaxx() / 2, getmaxy () / 2,
+  "Press a key to exit");
+  
+  getch ();
   cleardevice ();
   iterations = 0;
   
@@ -95,7 +102,7 @@ int main (int argc, char *argv[])
     random_walk ();
     
     if (iterations % 5000) {
-      if (xkbhit ())
+      if (kbhit ())
 	stop = 1;
     }
   }

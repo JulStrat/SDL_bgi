@@ -7,13 +7,13 @@
 // By Guido Gonzato, PhD
 // Automatic refresh patch, CHR font support:
 // Marco Diego Aurélio Mesquita
-// Latest update: September 16, 2021
+// Latest update: May 28, 2022
 
 // ZLib License
 
 /*
 
-Copyright (c) 2014-2021 Guido Gonzato, PhD
+Copyright (c) 2014-2022 Guido Gonzato, PhD
 
 This software is provided 'as-is', without any express or implied
 warranty. In no event will the authors be held liable for any damages
@@ -43,13 +43,16 @@ freely, subject to the following restrictions:
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_keycode.h>
 #include <SDL2/SDL_mouse.h>
-
 #include <stdio.h>   // for fprintf()
 #include <stdlib.h>  // for exit(), calloc()
 #include <math.h>    // for sin(), cos()
 #include <string.h>  // for strlen(), memcpy()
 
-#define SDL_BGI_VERSION 2.5.0
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+
+#define SDL_BGI_VERSION 2.6.0
 
 enum { NOPE, YEAH } ;
 #define BGI_WINTITLE_LEN 512 // more than enough
@@ -153,15 +156,25 @@ enum {
   USER_FILL         // user defined fill
 };
 
-// mouse buttons
+// mouse events - compatible with WinBGIm
 
-#define WM_LBUTTONDOWN  SDL_BUTTON_LEFT
-#define WM_MBUTTONDOWN  SDL_BUTTON_MIDDLE
-#define WM_RBUTTONDOWN  SDL_BUTTON_RIGHT
-#define WM_WHEEL        SDL_MOUSEWHEEL
-#define WM_WHEELUP      SDL_USEREVENT
-#define WM_WHEELDOWN    SDL_USEREVENT + 1
-#define WM_MOUSEMOVE    SDL_MOUSEMOTION
+#define WM_MOUSEMOVE       SDL_MOUSEMOTION
+
+#define WM_LBUTTONDOWN     SDL_BUTTON_LEFT
+#define WM_LBUTTONUP       SDL_MOUSEBUTTONUP   + SDL_BUTTON_LEFT
+#define WM_LBUTTONDBLCLK   SDL_MOUSEBUTTONDOWN + SDL_BUTTON_LEFT + 2
+
+#define WM_MBUTTONDOWN     SDL_BUTTON_MIDDLE
+#define WM_MBUTTONUP       SDL_MOUSEBUTTONUP   + 10*SDL_BUTTON_MIDDLE
+#define WM_MBUTTONDBLCLK   SDL_MOUSEBUTTONDOWN + 10*SDL_BUTTON_MIDDLE + 2
+
+#define WM_RBUTTONDOWN     SDL_BUTTON_RIGHT
+#define WM_RBUTTONUP       SDL_MOUSEBUTTONUP   + 20*SDL_BUTTON_RIGHT
+#define WM_RBUTTONDBLCLK   SDL_MOUSEBUTTONDOWN + 20*SDL_BUTTON_RIGHT + 2
+
+#define WM_WHEEL           SDL_MOUSEWHEEL
+#define WM_WHEELUP         SDL_BUTTON_RIGHT + 1
+#define WM_WHEELDOWN       SDL_BUTTON_RIGHT + 2
 
 // keys
 #define KEY_HOME        SDLK_HOME
@@ -366,7 +379,7 @@ void getarccoords (struct arccoordstype *);
 void getaspectratio (int *, int *);
 int  getbkcolor (void);
 int  bgi_getch (void);
-// circumvents Mingw bug
+// circumvent Mingw bug
 #define getch bgi_getch
 int  getcolor (void);
 struct palettetype
@@ -402,9 +415,10 @@ unsigned
 void initgraph (int *, int *, char *);
 int  installuserdriver (char *, int (*)(void));
 int  installuserfont (char *);
-// circumvents Mingw bug
+// circumvent Mingw bug
 int  bgi_kbhit (void);
 #define kbhit bgi_kbhit
+int  lastkey (void);
 void line (int, int, int, int);
 void linerel (int, int);
 void lineto (int, int);
@@ -452,11 +466,14 @@ void closewindow (int);
 int  COLOR (int, int, int);
 int  COLOR32 (Uint32);
 #define colorRGB(r,g,b)  0xff000000 | ((r) << 16) | ((g) << 8) | (b)
-int edelay (int);
+void copysurface (SDL_Surface *, int, int, int, int);
+int doubleclick (void);
+int  edelay (int);
 int  event (void);
 int  eventtype (void);
 // void freeimage (void *);
 void getbuffer (Uint32 *);
+int  getclick (void);
 int  getcurrentwindow (void);
 void getleftclick (void);
 int  getevent (void);
@@ -500,8 +517,9 @@ void setwintitle (int, char *);
 void showinfobox (const char *);
 void showerrorbox (const char *);
 void swapbuffers (void);
+void winclose (void);
 int  xkbhit (void);
-
+  
 #ifdef __cplusplus
 }
 #endif

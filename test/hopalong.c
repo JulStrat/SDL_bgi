@@ -77,13 +77,13 @@ int main (int argc, char *argv[])
       counter = 0;
       setcolor (COLOR (random (256), random (256), random (256)));
       refresh ();
-      if (event ())
+      if (ismouseclick (WM_LBUTTONDOWN) || kbhit ())
 	stop = 1;
     }
   }
   
   closegraph ();
-  if (SDL_KEYDOWN == eventtype())
+  if (SDL_KEYDOWN == eventtype ())
     puts ("Key pressed.");
   else
     puts ("Mouse clicked.");

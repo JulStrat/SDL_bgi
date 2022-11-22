@@ -5,7 +5,7 @@
 
 cmake_minimum_required (VERSION 3.5.0)
 
-set (SDL_BGI_VERSION 2.5.0)
+set (SDL_BGI_VERSION 2.6.0)
 
 # Project name
 project (SDL_bgi VERSION ${SDL_BGI_VERSION} LANGUAGES C)
@@ -22,10 +22,10 @@ include_directories (SDL_bgi ${SDL2_INCLUDE_DIRS})
 include (GNUInstallDirs)
 
 # fix stupid bug on Linux
-string (STRIP ${SDL2_LIBRARIES} SDL2_LIBRARIES)
+# string (STRIP ${SDL2_LIBRARIES} SDL2_LIBRARIES)
 
 # Find source files
-file (GLOB SOURCES src/*.c)
+file (GLOB SOURCES src/SDL_bgi.c)
 
 # Include header files
 include_directories (src)
@@ -61,8 +61,7 @@ file (GLOB man doc/graphics.3.gz)
 install (FILES ${man} DESTINATION ${CMAKE_INSTALL_MANDIR}/man3)
 
 # Install test programs
-file (GLOB test test/*)
-install (FILES ${test} DESTINATION ${CMAKE_INSTALL_DOCDIR}/test)
+install (DIRECTORY test/ DESTINATION ${CMAKE_INSTALL_DOCDIR}/test)
 
 # --- Packaging, thanks to cpack
 

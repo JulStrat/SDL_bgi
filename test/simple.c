@@ -27,7 +27,7 @@
 
 int i, stop, maxx, maxy;
 
-int pause (int msec)
+int _pause (int msec)
 {
   // like delay(), but takes care of keypresses
     
@@ -43,7 +43,7 @@ int pause (int msec)
 
   return keypressed;
 
-} // pause ()
+} // _pause ()
 
 // -----
 
@@ -77,7 +77,7 @@ void circles (void)
       circle  (random (maxx), random(maxy), random (100));
     }
     refresh ();
-    stop = pause (1000);
+    stop = _pause (1000);
     cleardevice ();
   } // while
 
@@ -98,7 +98,7 @@ void lines (void)
       line (random(maxx), random(maxy), random(maxx), random(maxy));
     }
     refresh ();
-    stop = pause (1000);
+    stop = _pause (1000);
     cleardevice ();
   } // while
 
@@ -120,7 +120,7 @@ void pixels (void)
       putpixel (random(maxx), random(maxy), col);
     }
     refresh ();
-    stop = pause (1000);
+    stop = _pause (1000);
     if (stop)
       break;
     srand (2015);
@@ -129,7 +129,7 @@ void pixels (void)
       putpixel (random(maxx), random(maxy), BLACK);
     }
     refresh ();
-    stop = pause (1000);
+    stop = _pause (1000);
     cleardevice ();
   } // while
  

@@ -5,6 +5,9 @@
  * 
  * getbuffer() / putbuffer() demonstration.
  *
+ * !!! Does not work in Emscripten:
+ * "Uncaught RuntimeError: memory access out of bounds"
+ *
  * By Guido Gonzato, January 2020.
  * 
  * This program is free software; you can redistribute it and/or modify
@@ -52,16 +55,16 @@ int main (int argc, char *argv[])
   setcolor (BLACK);
   setbkcolor (WHITE);
   cleardevice ();
-  outtextxy (0, 0, "Left click to continue:");
+  outtextxy (0, 0, "Click to continue:");
   refresh ();
-  getleftclick ();
   
+  getclick ();
   putbuffer (red[0]);
   getbuffer (tmp[0]); // tmp == red
   setcolor (WHITE);
   outtextxy (0, 0, "Left click to continue:");
   refresh ();
-  getleftclick ();
+  getclick ();
   
   for (alpha = 0; alpha < 128; alpha++) {
     
@@ -74,14 +77,16 @@ int main (int argc, char *argv[])
     putbuffer (tmp[0]);   // red screen
     putbuffer (hues[0]);  // hues + alpha on red
     refresh ();
-    delay (50);
+    delay (10);
     
   } // for alpha
 
   outtextxy (0, 0, "Left click to finish:");
   refresh ();
-  getleftclick ();
+  getclick ();
 
   closegraph ();
   
 }
+
+// ----- end of file buffers.c

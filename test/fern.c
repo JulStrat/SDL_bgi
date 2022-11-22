@@ -122,7 +122,7 @@ int main (int argc, char *argv[])
       if (kbhit ())
 	stop = 1;
     }
-    if (10000000 == counter) /* 10 million pixels */
+    if (100000000 == counter) /* 100 million pixels */
       break;
   }
   setcolor (GREEN);
@@ -132,4 +132,4 @@ int main (int argc, char *argv[])
   return 0;
 }
 
-/* --  end of file fern.c --- */
+/* -----  end of file fern.c ----- */

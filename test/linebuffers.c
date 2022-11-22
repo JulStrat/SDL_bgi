@@ -29,7 +29,6 @@
 #define WIDTH  256
 #define HEIGHT 256
 
-
 void shiftbuffer (Uint32 *line)
 {
   // scroll line elements 1 position to the left
@@ -39,7 +38,7 @@ void shiftbuffer (Uint32 *line)
   
   tmp = line[0];
   memmove ( (void *) &line[0], (const void *) &line[1],
-	    (size_t) (WIDTH * sizeof (Uint32)) );
+	    (size_t) ((WIDTH - 1) * sizeof (Uint32)) );
   line[WIDTH - 1] = tmp;
   
 } // shiftbuffer()
@@ -60,23 +59,16 @@ int main (int argc, char *argv[])
   
   setwinoptions ("Using putlinebuffer()", -1, -1, -1);
   initwindow (WIDTH, HEIGHT);
-  putbuffer (hues[0]);
   refresh ();
   showinfobox ("Left click to switch between\n"
 	       "putlinebuffer() and putpixel();\n"
-	       "any key to stop.");
-
+	       "right click to stop.");
+  
+  putbuffer (hues[0]);
+  refresh ();
   int mode = 1;
   
-  while (! xkbhit ()) {
-    
-    if (WM_LBUTTONDOWN == mouseclick ()) {
-      mode ^= 1;
-      if (1 == mode)
-	puts ("using getlinebuffer()/putlinebuffer()");
-      else
-	puts ("using getpixel()/putpixel()");
-    }
+  while (! ismouseclick (WM_RBUTTONDOWN)) {
     
     if (1 == mode) {
       for (int y = 0; y < HEIGHT; y++) {
@@ -93,6 +85,14 @@ int main (int argc, char *argv[])
 	for (int x = 0; x < WIDTH; x++)
 	  putpixel (x, y, COLOR32(linebuffer[x]));
       }
+    }
+    
+    if (WM_LBUTTONDOWN == mouseclick ()) {
+      mode ^= 1;
+      if (1 == mode)
+	puts ("using getlinebuffer()/putlinebuffer()");
+      else
+	puts ("using getpixel()/putpixel()");
     }
     
     delay (5);

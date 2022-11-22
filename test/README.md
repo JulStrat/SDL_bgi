@@ -1,10 +1,21 @@
-Test programs for SDL_bgi
--------------------------
+# Test programs for `SDL_bgi`
 
 By Guido Gonzato, PhD
 
 This directory contains a few simple programs that show how to use
-some features of `SDL_bgi`; type `make` to compile them.
+some features of `SDL_bgi`. You can compile these programs to native
+executables using a standard C compiler, or to WebAssembly embedded in
+html files using the Emscripten `emcc` compiler.
+
+To compile the programs as native executables, type `make`; to compile
+them to html files, type `make -f Makefile.emcc`. The resulting
+html files can be loaded and run in any web browser, without the need
+of a local web server (no need to use `emrun`).
+
+If you use the `tcc` compiler, you can run your program using the
+provided `tccrun` shell script (GNU/Linux only). For example:
+
+    ./tccrun life.c 20
 
 You may want to compile the original `bgidemo.c` program by Borland.
 It's not free software, so it's not included here. However, it can be
@@ -12,11 +23,8 @@ downloaded from several sources; type `make bgidemo` to download and
 compile it. You will need the `wget` tool in the $PATH.
 
 By default, `bgidemo` fails to build on MSYS2 because of its wrong
-`main()` declaration; the Makefiles calls 'sed' to change `int main()`
-to `int main(int argc, char *argv[])`.
-
-There may be compiler warnings using gcc releases newer than 7, as in
-Ubuntu 20.
+`main()` declaration; to fix is, Makefile calls 'sed' to change `int
+main()` to `int main(int argc, char *argv[])`.
 
 License: all programs are released under GPL2 or later.
 
@@ -58,13 +66,17 @@ fade away effect.
 `./life [number]`, where `[number]` is the initial percentage of living
 cells.
 
+- `loadimage.c` shows how to load .png (or .jpg) pictures using 
+SDL2_Image (required to compile this program) and copysurface().
+Type `make loadimage` to compile.
+
 - `linebuffers.c` shows how to use `getlinebuffer()` and
 `putlinebuffer()` to draw pixel-based stuff on the screen. Using
 buffers (i.e. arrays) is much faster than using `putpixel()`.
 
 - `mandelbrot.c` is a simple, non-optimised program to display the
 Mandelbrot set, <https://en.wikipedia.org/wiki/Mandelbrot_set>. It
-shows how to setup and use RGB colour mode. Press '1', '2', '3' to
+shows how to setup and use RGB colour mode. Press '1', '2', '3' to4<<
 change the palette; left click to zoom in on a point; right click to
 zoom out; arrow keys to move around; middle click to restore the
 initial boundary.
@@ -73,6 +85,10 @@ initial boundary.
 using all buttons and mouse wheel.
 
 - `multiwin.c` shows how to open multiple windows.
+
+- `pdj.c` plots Peter de Jong attractors,
+<http://paulbourke.net/fractals/peterdejong/>. Press any key to plot a
+new random attractor, or ESC to exit.
 
 - `plasma.c` writes the window contents to a `.bmp` file.
 
@@ -96,8 +112,7 @@ Besides, 'f90_test' shows how to use `SDL_bgi` in Fortran programs.
 Kindly provided by Angelo Graziosi.
 
 
-Notes on Turtle Graphics
-------------------------
+# Notes on Turtle Graphics
 
 Turtle graphics is based on polar coordinates: you draw lines
 specifying the distance in pixels and an angle in degrees, called

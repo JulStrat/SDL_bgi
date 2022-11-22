@@ -94,7 +94,7 @@ int main (int argc, char *argv[])
   outtextxy (10, pos_y += v_skip, str_az);
   pos_y += v_skip + 15;
   
-  getch ();
+  getevent ();
   cleardevice ();
 
   pos_y = 5;
@@ -125,7 +125,7 @@ int main (int argc, char *argv[])
   outtextxy (10, pos_y += v_skip, str_az);
   pos_y += v_skip + 20;
 
-  getch ();
+  getevent ();
   cleardevice ();
 
   pos_y = 5;
@@ -155,7 +155,7 @@ int main (int argc, char *argv[])
   outtextxy (10, pos_y += v_skip, str_AZ);
   outtextxy (10, pos_y += v_skip, str_az);
 
-  getch ();
+  getevent ();
   cleardevice ();
   
   settextstyle (TRIPLEX_FONT, VERT_DIR, 0);
@@ -176,7 +176,7 @@ int main (int argc, char *argv[])
   outtextxy (getmaxx () * 0.75, getmaxy () / 2,
 	    "This is VERTICAL TEXT");
 
-  getch ();
+  getevent ();
   cleardevice ();
 
   pos_y = 5;
@@ -210,7 +210,7 @@ int main (int argc, char *argv[])
   outtextxy (10, pos_y += v_skip, str_az);
   pos_y += v_skip + 20;
 
-  getch ();
+  getevent ();
   closegraph ();
   
 } /* main () */

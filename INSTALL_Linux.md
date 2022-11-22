@@ -1,7 +1,7 @@
-# Installing `SDL_bgi` in GNU/Linux
+# Installing `SDL_bgi` on GNU/Linux
 
 The easiest way to install `SDL_bgi` is by using the binary packages
-provided at <http://libxbgi.sourceforge.net/#download> in `.deb` and
+provided at <http://sdl-bgi.sourceforge.io/#download> in `.deb` and
 `.rpm` format.
 
 Alternatively, you can easily compile `SDL_bgi` yourself, as shown below.
@@ -19,7 +19,7 @@ you'll also need `make` and a C compiler; `gcc` or `clang` are fine.
 
 To compile and install `SDL_bgi`, run the following commands:
 
-    $ VERSION=2.5.0
+    $ VERSION=2.5.1
     $ tar zxvf SDL_bgi-$VERSION.tar.gz
     $ cd SDL_bgi-$VERSION/src
     $ make
@@ -38,10 +38,10 @@ This only works if `cmake` and `cpack` are installed.
 
 To compile the `SDL_bgi` library and make `.deb` or `.rpm` packages:
 
-    $ VERSION=2.5.0
+    $ VERSION=2.5.1
     $ tar zxvf SDL_bgi-$VERSION.tar.gz
     $ cd SDL_bgi-$VERSION
-    $ ./build.sh
+    $ ./mkpkg.sh
 
 which creates a subdirectory called `build/`, moves to it, runs
 `cmake`, then `cpack`. In a few seconds, in directory `build/` you

@@ -6,7 +6,9 @@
  * Simple cellular automaton, as described at
  * http://mathworld.wolfram.com/ElementaryCellularAutomaton.html
  * 
- * By Guido Gonzato, May 2015.
+ * This version can be compiled to Webassembly using emscripten.
+ * 
+ * By Guido Gonzato, May 2022.
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,31 +32,39 @@
 
 #include <graphics.h>
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+
+
 #define SIZE  500
 #define ALIVE 1
 #define DEAD  0
 
 char a[SIZE][SIZE], b[SIZE][SIZE];
+
 void print_cells (char[SIZE][SIZE]);
 void evolve_cells (char[SIZE][SIZE], char[SIZE][SIZE]);
+void initialise (int);
 
-int main (int argc, char *argv[])
+// -----
+
+void initialise (int percentage)
 {
-  int x, y, stop = 0;
-  unsigned int percent;
-  unsigned long iterations = 0;
-  
-  srand (time(NULL));
-  if (2 == argc)
-    percent = atoi (argv [1]); // no checks!
-  else
-    percent = 10;
-  
-  for (x = 0; x < SIZE; x++)
-    for (y = 0; y < SIZE; y++)
-      a[x][y] = (random (100) < percent) ? ALIVE: DEAD;
-  
-  initwindow (SIZE, SIZE);
+  for (int x = 0; x < SIZE; x++)
+    for (int y = 0; y < SIZE; y++)
+      a[x][y] = (random (100) < percentage) ? ALIVE: DEAD;
+}
+
+// -----
+
+void main_loop (void)
+{
+
+  unsigned long
+    iterations = 0;
+  int
+    stop = 0;
   
   while (! stop) {
     evolve_cells (a, b);
@@ -64,9 +74,34 @@ int main (int argc, char *argv[])
     print_cells (a);
     refresh ();
     if (++iterations % 1000)
-      if (xkbhit ())
-	stop = 1;
+      if (kbhit ()) {
+	if (KEY_ESC == lastkey ())
+	  stop = 1;
+	else
+	  initialise (random (100));
+      }
   }
+
+} // --- main_loop ()
+
+// -----
+
+int main (int argc, char *argv[])
+{
+  unsigned int percentage;
+  
+  srand (time(NULL));
+  if (2 == argc)
+    percentage = atoi (argv [1]); // no checks!
+  else
+    percentage = 10;
+
+  showinfobox ("Press any key to restart,\n"
+               "or ESC to exit.");
+  
+  initialise (percentage);
+  initwindow (SIZE, SIZE);
+  main_loop ();
   
   closegraph ();
   
